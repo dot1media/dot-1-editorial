@@ -1,144 +1,149 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Shell from "@/components/Shell";
-import { useMe } from "@/lib/client";
-import { Monitor, Smartphone, Image as ImageIcon, ExternalLink, FileText, Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { api, useMe } from "@/lib/client";
+import { fmtClock, EPISODE_STATUS, WEEKDAYS } from "@/lib/broadcast";
+import { Plus, Radio, Wrench, Calendar } from "lucide-react";
 
-// The broadcast tools are self-contained HTML apps served from /broadcast on this domain. This
-// page is the launcher: open each one, and for the two OBS overlays it shows the exact program
-// URL (the source) and control URL (?panel dock) to paste into OBS. Hosting them here means OBS
-// can point at the live URL instead of a local file, so updates flow without re-adding sources.
-
-const TOOLS = [
-  {
-    id: "broadcast",
-    title: "Control Room",
-    tag: "16:9 · OBS 1920x1080",
-    icon: Monitor,
-    file: "/broadcast/dot1-news-broadcast.html",
-    blurb: "The full lower-thirds, breaking, ticker, quotes, weather, sports, and standby control surface. Add the program URL as a browser source, then dock the control URL beside your preview.",
-    obs: true,
-  },
-  {
-    id: "vertical",
-    title: "Vertical Frame",
-    tag: "9:16 · OBS 1080x1920",
-    icon: Smartphone,
-    file: "/broadcast/dot1-news-vertical.html",
-    blurb: "The tall overlay for TikTok, Reels, and Shorts. Same dock-and-program split as the control room, sized for a vertical second profile in OBS.",
-    obs: true,
-  },
-  {
-    id: "thumbnail",
-    title: "Thumbnail Studio",
-    tag: "YouTube · Facebook",
-    icon: ImageIcon,
-    file: "/broadcast/thumbnail-studio.html",
-    blurb: "Build thumbnails for YouTube (1280x720) and Facebook (1200x630) with the three D1N layouts. Open it, design, and export a clean PNG.",
-    obs: false,
-  },
-];
-
-const GUIDES = [
-  { label: "Operator Cheat Sheet", file: "/broadcast/guides/Dot1-News-Cheat-Sheet.pdf" },
-  { label: "Show Day Guide", file: "/broadcast/guides/Dot1-News-Show-Day-Guide.pdf" },
-  { label: "Live Production Cheat Sheet", file: "/broadcast/guides/Dot1-News-Live-Production-Cheat-Sheet.pdf" },
-];
-
-export default function BroadcastPage() {
+export default function BroadcastHome() {
   const { can } = useMe();
-  const [origin, setOrigin] = useState("");
-  if (typeof window !== "undefined" && !origin) setOrigin(window.location.origin);
+  const router = useRouter();
+  const [episodes, setEpisodes] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  async function load() {
+    const [e, t] = await Promise.all([
+      api<{ episodes: any[] }>("/api/broadcast/episodes"),
+      api<{ templates: any[] }>("/api/broadcast/templates"),
+    ]);
+    setEpisodes(e.episodes || []);
+    setTemplates(t.templates || []);
+    setLoaded(true);
+  }
+  useEffect(() => { load(); }, []);
+
+  const upcoming = episodes.filter((e) => e.status === "planning" || e.status === "ready");
+  const past = episodes.filter((e) => e.status === "aired" || e.status === "archived" || e.status === "live");
 
   return (
-    <Shell title="Broadcast" subtitle="Your live production tools, hosted and ready for OBS.">
-      {!can("broadcast.view") ? (
-        <div className="card pad muted tiny">You do not have access to the broadcast tools.</div>
-      ) : (
+    <Shell title="Broadcast" subtitle="Plan the show, write the script, remember what aired."
+      actions={
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link href="/broadcast/tools" className="btn ghost"><Wrench size={15} /> Live tools</Link>
+          {can("broadcast.manage") && <button className="btn primary" onClick={() => setCreating(true)}><Plus size={15} /> New episode</button>}
+        </div>
+      }>
+      {!loaded ? <span className="mono muted tiny">Loading…</span> : (
         <>
-          <div className="grid" style={{ gridTemplateColumns: "1fr", gap: 14, marginBottom: 22 }}>
-            {TOOLS.map((t) => (
-              <ToolCard key={t.id} tool={t} origin={origin} />
-            ))}
-          </div>
-
-          <div className="card pad">
-            <div className="mini" style={{ marginBottom: 12 }}>GUIDES</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              {GUIDES.map((g) => (
-                <a key={g.file} className="btn ghost sm" href={g.file} target="_blank" rel="noreferrer">
-                  <FileText size={14} /> {g.label}
-                </a>
-              ))}
+          {templates.length > 0 && (
+            <div className="card pad" style={{ marginBottom: 18 }}>
+              <div className="mini" style={{ marginBottom: 12 }}>SHOW SCHEDULE</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+                {templates.map((t) => (
+                  <div key={t.id} className="card pad" style={{ minWidth: 200 }}>
+                    <div className="disp" style={{ fontSize: 17, fontWeight: 700 }}>{t.name}</div>
+                    <div className="tiny muted" style={{ marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                      <Calendar size={12} />
+                      {t.default_weekday != null ? `${WEEKDAYS[t.default_weekday]}s` : "Ad hoc"}{t.default_time ? ` · ${t.default_time}` : ""}
+                    </div>
+                    <div className="tiny muted" style={{ marginTop: 4 }}>Target {fmtClock(t.target_runtime_seconds)} · {(t.segments || []).length} segments</div>
+                    {can("broadcast.manage") && (
+                      <button className="btn ghost sm" style={{ marginTop: 10 }} onClick={() => setCreating(true)}>Build episode →</button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="card pad" style={{ marginTop: 14 }}>
-            <div className="mini" style={{ marginBottom: 10 }}>HOW THE DOCK WORKS</div>
-            <div className="tiny muted" style={{ lineHeight: 1.6, maxWidth: 720 }}>
-              Each overlay runs in two roles from the same URL. Add the <b>program URL</b> as an OBS browser
-              source at full size; it renders clean and transparent. Add the <b>control URL</b> (the same
-              address with <span className="mono">?panel</span>) as a Custom Browser Dock beside your preview.
-              Type in the dock and the program updates live. Never put <span className="mono">?panel</span> on
-              the source itself, only on the dock.
-            </div>
-          </div>
+          <Section title="UPCOMING" episodes={upcoming} router={router} empty="No episodes planned. Create one to start building a rundown." />
+          {past.length > 0 && <div style={{ height: 18 }} />}
+          {past.length > 0 && <Section title="AIRED" episodes={past} router={router} empty="" />}
         </>
       )}
+
+      {creating && <CreateEpisode templates={templates} onClose={() => setCreating(false)} onCreated={(id: string) => router.push(`/broadcast/episodes/${id}`)} />}
     </Shell>
   );
 }
 
-function ToolCard({ tool, origin }: { tool: any; origin: string }) {
-  const Icon = tool.icon;
-  const programUrl = origin + tool.file;
-  const controlUrl = origin + tool.file + "?panel";
-
+function Section({ title, episodes, router, empty }: any) {
   return (
-    <div className="card pad">
-      <div className="row-between">
-        <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-          <div style={{ width: 42, height: 42, borderRadius: 9, background: "rgba(200,162,74,.14)", display: "flex", alignItems: "center", justifyContent: "center", flex: "none" }}>
-            <Icon size={20} color="var(--gold)" />
-          </div>
-          <div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-              <span className="disp" style={{ fontSize: 19, fontWeight: 700 }}>{tool.title}</span>
-              <span className="mono tiny" style={{ color: "var(--dim)" }}>{tool.tag}</span>
-            </div>
-            <div className="tiny muted" style={{ marginTop: 6, lineHeight: 1.5, maxWidth: 640 }}>{tool.blurb}</div>
-          </div>
-        </div>
-        <a className="btn primary sm" href={tool.file} target="_blank" rel="noreferrer" style={{ flex: "none" }}>
-          <ExternalLink size={14} /> Open
-        </a>
+    <div className="card">
+      <div className="pad" style={{ borderBottom: "1px solid var(--line)" }}>
+        <span className="mono tiny" style={{ letterSpacing: "0.2em", color: "var(--gold)" }}>{title}</span>
       </div>
-
-      {tool.obs && origin && (
-        <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
-          <UrlRow label="Program URL (OBS source)" url={programUrl} />
-          <UrlRow label="Control URL (OBS dock)" url={controlUrl} />
-        </div>
+      {episodes.length === 0 ? (
+        <div className="pad muted tiny">{empty}</div>
+      ) : (
+        <table className="grid-t">
+          <thead><tr><th>Episode</th><th>Air date</th><th>Segments</th><th>Runtime</th><th>Status</th></tr></thead>
+          <tbody>
+            {episodes.map((e: any) => (
+              <tr key={e.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/broadcast/episodes/${e.id}`)}>
+                <td style={{ fontWeight: 600 }}><Radio size={13} style={{ opacity: 0.5, marginRight: 7, verticalAlign: "middle" }} />{e.title}</td>
+                <td className="tiny muted">{e.air_date ? new Date(e.air_date + "T00:00:00").toLocaleDateString() : "unscheduled"}{e.air_time ? ` · ${e.air_time}` : ""}</td>
+                <td className="tiny">{e.segment_count}</td>
+                <td className="mono tiny">{fmtClock(e.runtime_seconds)}</td>
+                <td><span className={"chip" + (e.status === "aired" ? " ok" : e.status === "live" ? " crimson" : "")}>{EPISODE_STATUS.find((s) => s.id === e.status)?.label || e.status}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );
 }
 
-function UrlRow({ label, url }: { label: string; url: string }) {
-  const [copied, setCopied] = useState(false);
-  function copy() {
-    navigator.clipboard?.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1400);
+function CreateEpisode({ templates, onClose, onCreated }: any) {
+  const [title, setTitle] = useState("");
+  const [templateId, setTemplateId] = useState(templates[0]?.id || "");
+  const [airDate, setAirDate] = useState("");
+  const [airTime, setAirTime] = useState(templates[0]?.default_time || "");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function create() {
+    if (!title.trim()) { setErr("Give the episode a title."); return; }
+    setBusy(true);
+    try {
+      const r = await api<{ id: string }>("/api/broadcast/episodes", {
+        method: "POST",
+        body: JSON.stringify({ title, templateId: templateId || null, airDate: airDate || null, airTime }),
+      });
+      onCreated(r.id);
+    } catch (e: any) { setErr(e.message); setBusy(false); }
   }
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <span className="mono tiny" style={{ color: "var(--dim)", width: 168, flex: "none" }}>{label}</span>
-      <code className="mono tiny" style={{ flex: 1, background: "#17130f", border: "1px solid var(--line)", borderRadius: 6, padding: "7px 10px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{url}</code>
-      <button className="btn ghost sm" onClick={copy} style={{ flex: "none" }}>
-        {copied ? <Check size={13} color="#8fd6a8" /> : <Copy size={13} />}
-      </button>
+    <div className="overlay" onClick={onClose}>
+      <div className="modal card" onClick={(e) => e.stopPropagation()}>
+        <div className="pad stack">
+          <div className="disp" style={{ fontSize: 22, fontWeight: 700 }}>New episode</div>
+          <div><label className="f">Title</label><input className="in" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus placeholder="Evening Edition — Thursday" /></div>
+          <div><label className="f">Build from template</label>
+            <select className="in" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
+              <option value="">Blank (ad hoc)</option>
+              {templates.map((t: any) => <option key={t.id} value={t.id}>{t.name} ({(t.segments || []).length} segments)</option>)}
+            </select>
+            <div className="tiny muted" style={{ marginTop: 5 }}>A template pre-loads its segment lineup; blank starts empty.</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div><label className="f">Air date</label><input className="in" type="date" value={airDate} onChange={(e) => setAirDate(e.target.value)} /></div>
+            <div><label className="f">Air time</label><input className="in" value={airTime} onChange={(e) => setAirTime(e.target.value)} placeholder="18:00" /></div>
+          </div>
+          {err && <div className="tiny" style={{ color: "#ffb4b4" }}>{err}</div>}
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button className="btn ghost" onClick={onClose}>Cancel</button>
+            <button className="btn primary" onClick={create} disabled={busy}>{busy ? "Creating…" : "Create and build"}</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -232,6 +232,65 @@ export async function ensureSchema(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_media_story ON media_assets(story_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_media_created ON media_assets(created_at DESC)`;
 
+  // ---- Broadcast production ----------------------------------------------------------------------
+  // A show TEMPLATE is the recurring skeleton (e.g. "Evening Edition"): a default set of segment
+  // slots in order. An EPISODE is one dated instance of a show, optionally on a weekly schedule.
+  // A SEGMENT is one row in an episode's rundown, optionally backed by a story record, with its own
+  // estimated duration so the rundown can total the show runtime.
+
+  await sql`CREATE TABLE IF NOT EXISTS show_templates (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    default_weekday INTEGER,           -- 0=Sun..6=Sat, null = ad hoc
+    default_time TEXT DEFAULT '',      -- e.g. "18:00", display only
+    target_runtime_seconds INTEGER DEFAULT 0,
+    segments JSONB NOT NULL DEFAULT '[]'::jsonb,  -- array of {type,title,est_seconds}
+    weather_location TEXT DEFAULT '',
+    weather_lat DOUBLE PRECISION,
+    weather_lng DOUBLE PRECISION,
+    created_by TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )`;
+
+  await sql`CREATE TABLE IF NOT EXISTS episodes (
+    id TEXT PRIMARY KEY,
+    template_id TEXT REFERENCES show_templates(id) ON DELETE SET NULL,
+    title TEXT NOT NULL,
+    air_date DATE,
+    air_time TEXT DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'planning',  -- planning, ready, live, aired, archived
+    weather_location TEXT DEFAULT '',
+    weather_lat DOUBLE PRECISION,
+    weather_lng DOUBLE PRECISION,
+    notes TEXT DEFAULT '',
+    aired_at TIMESTAMPTZ,
+    created_by TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_episodes_date ON episodes(air_date DESC)`;
+
+  await sql`CREATE TABLE IF NOT EXISTS segments (
+    id TEXT PRIMARY KEY,
+    episode_id TEXT NOT NULL REFERENCES episodes(id) ON DELETE CASCADE,
+    position INTEGER NOT NULL DEFAULT 0,
+    type TEXT NOT NULL DEFAULT 'package',  -- open, headlines, package, vo, vosot, interview, weather, sports, breaking, toss, break, outro
+    title TEXT NOT NULL DEFAULT '',
+    story_id TEXT REFERENCES stories(id) ON DELETE SET NULL,
+    est_seconds INTEGER NOT NULL DEFAULT 0,
+    script TEXT DEFAULT '',             -- teleprompter copy; falls back to story body when linked
+    lower_third_name TEXT DEFAULT '',
+    lower_third_title TEXT DEFAULT '',
+    graphic_json JSONB,                 -- prepared overlay payload handed off to OBS
+    presenter_email TEXT,
+    notes TEXT DEFAULT '',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_segments_episode ON segments(episode_id, position)`;
+
   ensured = true;
 }
 
