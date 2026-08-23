@@ -34,7 +34,8 @@ export default function StandardsPage() {
   }
 
   return (
-    <Shell title="Editorial Standards" subtitle="The public rules that govern D1N journalism.">
+    <Shell title="Editorial Standards" subtitle="The public rules that govern D1N journalism."
+      actions={<a className="btn ghost sm" href="/policy/standards" target="_blank" rel="noreferrer">View public pages ↗</a>}>
       <div className="grid" style={{ gridTemplateColumns: "220px 1fr", gap: 20, alignItems: "start" }}>
         <div className="card" style={{ overflow: "hidden" }}>
           {pages.map((p) => (

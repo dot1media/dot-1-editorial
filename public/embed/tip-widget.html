@@ -1,0 +1,57 @@
+<!-- Dot 1 News tip widget. Drop this block anywhere on dot1.media or news.dot1.media.
+     It posts to the editorial portal's public tip endpoint (CORS-allowed for Dot One origins).
+     No dependencies. Style to taste; the endpoint is what matters. -->
+<div id="d1n-tip" style="max-width:620px;font-family:Archivo,system-ui,sans-serif;color:#141210">
+  <h3 style="font-family:'Bodoni Moda',Georgia,serif;font-weight:700;font-size:24px;margin:0 0 6px">Submit a News Tip</h3>
+  <p style="font-size:15px;line-height:1.6;margin:0 0 18px;color:rgba(20,18,16,.75)">Know something we should look into? You can submit anonymously.</p>
+  <form id="d1n-tip-form">
+    <input name="subject" placeholder="Subject" style="width:100%;padding:11px 13px;margin-bottom:12px;border:1px solid rgba(20,18,16,.2);border-radius:8px;font-size:15px;box-sizing:border-box">
+    <textarea name="body" placeholder="What is happening? Include when and where if you can." required style="width:100%;min-height:130px;padding:11px 13px;margin-bottom:12px;border:1px solid rgba(20,18,16,.2);border-radius:8px;font-size:15px;box-sizing:border-box;resize:vertical"></textarea>
+    <input name="location" placeholder="Location (e.g. Wasilla, AK)" style="width:100%;padding:11px 13px;margin-bottom:12px;border:1px solid rgba(20,18,16,.2);border-radius:8px;font-size:15px;box-sizing:border-box">
+    <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:14px;cursor:pointer">
+      <input type="checkbox" name="anonymous"> Submit anonymously
+    </label>
+    <div class="d1n-contact">
+      <input name="name" placeholder="Your name" style="width:100%;padding:11px 13px;margin-bottom:12px;border:1px solid rgba(20,18,16,.2);border-radius:8px;font-size:15px;box-sizing:border-box">
+      <input name="contact" placeholder="Email or phone" style="width:100%;padding:11px 13px;margin-bottom:12px;border:1px solid rgba(20,18,16,.2);border-radius:8px;font-size:15px;box-sizing:border-box">
+    </div>
+    <input name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+    <div id="d1n-tip-msg" style="font-size:14px;margin-bottom:12px"></div>
+    <button type="submit" style="background:#b81616;color:#f4f0e7;border:none;border-radius:8px;padding:12px 24px;font-size:15px;font-weight:700;cursor:pointer">Send to the newsroom</button>
+  </form>
+</div>
+<script>
+(function(){
+  var ENDPOINT = "https://editorial.dot1.media/api/public/tip";
+  var form = document.getElementById("d1n-tip-form");
+  var msg = document.getElementById("d1n-tip-msg");
+  var anon = form.querySelector('[name=anonymous]');
+  var contact = document.querySelector('#d1n-tip .d1n-contact');
+  anon.addEventListener('change', function(){ contact.style.display = anon.checked ? 'none' : 'block'; });
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    var fd = new FormData(form);
+    var payload = {
+      kind: "tip",
+      source: (location.host.indexOf("news.") === 0 ? "news-site" : "main-site"),
+      subject: fd.get("subject") || "",
+      body: fd.get("body") || "",
+      location: fd.get("location") || "",
+      anonymous: !!fd.get("anonymous"),
+      name: fd.get("name") || "",
+      contact: fd.get("contact") || "",
+      website: fd.get("website") || ""
+    };
+    msg.textContent = "Sending…"; msg.style.color = "rgba(20,18,16,.6)";
+    fetch(ENDPOINT, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) })
+      .then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); })
+      .then(function(res){
+        if(!res.ok){ throw new Error(res.d.error || "Something went wrong."); }
+        form.style.display = "none";
+        msg.style.color = "#3f8f5f";
+        msg.textContent = "Thank you. Your tip reached the newsroom.";
+      })
+      .catch(function(err){ msg.style.color = "#b81616"; msg.textContent = err.message; });
+  });
+})();
+</script>
