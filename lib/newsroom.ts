@@ -139,3 +139,16 @@ export const CORE_STANDARDS: string[] = [
   "Attribute reporting originating from other organizations",
   "Maintain documentation supporting significant reporting",
 ];
+
+// Media. The news database uses different category and style vocabularies for photos vs videos,
+// so editorial mirrors both and picks the right set by asset kind at publish time.
+export const PHOTO_CATEGORIES = ["conflict", "humanitarian", "environment", "culture", "sports", "wildlife", "urban", "faith"] as const;
+export const PHOTO_STYLES = ["documentary", "portrait", "landscape", "action", "editorial", "street"] as const;
+export const VIDEO_CATEGORIES = ["documentary", "interview", "investigation", "testimony", "teaching", "news-report", "short-film"] as const;
+export const VIDEO_STYLES = ["documentary", "cinematic", "interview", "vlog", "animation", "mixed-media"] as const;
+
+// Accepted upload types and the Blob size ceiling we allow from the browser.
+export const IMAGE_MIME = ["image/jpeg", "image/png", "image/webp"];
+export const VIDEO_MIME = ["video/mp4", "video/webm", "video/quicktime"];
+export const MAX_IMAGE_BYTES = 25 * 1024 * 1024; // 25 MB
+export const MAX_VIDEO_BYTES = 500 * 1024 * 1024; // 500 MB

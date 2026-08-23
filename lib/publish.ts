@@ -115,67 +115,84 @@ export async function unpublishFromNews(newsStoryId: string): Promise<void> {
   await newsSql!`UPDATE news_stories SET status = 'archived', updated_at = now() WHERE id = ${newsStoryId}`;
 }
 
-// ---- Media publishing -------------------------------------------------------------------------
-// Standalone photos and videos publish into the news photos/videos tables, matching their schema
-// (required NOT NULL columns filled with sensible fallbacks). Like stories, a published media item
-// keeps a pointer (news_media_id) so re-publishing updates the same news row.
+// ---- Media publishing ---------------------------------------------------------------------------
+// Publish a media asset into the news database: images into photos, videos into videos. Required
+// NOT NULL columns are always given a value; category/style are validated by the news CHECK
+// constraints, so callers must pass values from the news vocabularies (PHOTO_/VIDEO_ constants).
 
 export interface MediaRow {
   id: string;
   kind: string;
-  url: string;
-  thumbnail_url: string;
+  blob_url: string;
+  thumb_url: string;
   title: string;
   caption: string;
   description: string;
-  location: string;
   credit: string;
+  location: string;
   category: string;
-  duration: string;
-  tags: any;
-  news_media_id: string | null;
+  media_style: string;
+  duration_seconds: number | null;
+  width: number | null;
+  height: number | null;
+  mime: string;
+  news_id: string | null;
 }
 
-const PHOTO_CATEGORIES = new Set(["conflict", "humanitarian", "environment", "culture", "sports", "wildlife", "urban", "faith"]);
-const VIDEO_CATEGORIES = new Set(["documentary", "interview", "investigation", "testimony", "teaching", "news-report", "short-film"]);
+function fmtDuration(sec: number | null): string {
+  const s = Math.max(0, Math.floor(sec || 0));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${String(r).padStart(2, "0")}`;
+}
 
-export async function publishMediaToNews(m: MediaRow, credit: string): Promise<string> {
+export async function publishMediaToNews(m: MediaRow, credit: string): Promise<{ newsId: string }> {
   assertNewsConfigured();
   const db = newsSql!;
   const now = new Date().toISOString();
-  const tags: string[] = Array.isArray(m.tags) ? m.tags : [];
-  const isUpdate = !!m.news_media_id;
+  const isUpdate = !!m.news_id;
 
-  if (m.kind === "video") {
-    const category = VIDEO_CATEGORIES.has(m.category) ? m.category : "news-report";
-    const newsId = m.news_media_id || `vid_${crypto.randomBytes(9).toString("base64url")}`;
-    const title = m.title || m.caption || "Untitled";
-    const description = m.description || m.caption || title;
-    const thumb = m.thumbnail_url || m.url;
-    const duration = m.duration || "0:00";
+  if (m.kind === "image") {
+    const newsId = m.news_id || `photo_${crypto.randomBytes(9).toString("base64url")}`;
+    const imgFormat = m.mime.includes("png") ? "png" : m.mime.includes("webp") ? "webp" : "jpeg";
+    const caption = (m.caption || m.title || "Untitled").slice(0, 500);
+    const location = m.location || "Unknown";
+    const photographer = credit || m.credit || "Dot 1 News";
+    const category = m.category || null; // photos.category is nullable
+    const style = m.media_style || "documentary";
     if (isUpdate) {
-      await db`UPDATE videos SET title = ${title}, description = ${description}, thumbnail = ${thumb},
-        video_url = ${m.url}, duration = ${duration}, category = ${category}, producer = ${credit},
-        tags = ${tags}, updated_at = now() WHERE id = ${newsId}`;
+      await db`UPDATE photos SET image = ${m.blob_url}, caption = ${caption}, full_description = ${m.description || ""},
+        location = ${location}, photographer = ${photographer}, image_format = ${imgFormat},
+        photo_style = ${style}, category = ${category}, image_width = ${m.width}, image_height = ${m.height},
+        status = 'published', updated_at = now() WHERE id = ${newsId}`;
     } else {
-      await db`INSERT INTO videos (id, title, description, thumbnail, video_url, duration, category, producer, tags, status, date, published_at)
-        VALUES (${newsId}, ${title}, ${description}, ${thumb}, ${m.url}, ${duration}, ${category}, ${credit}, ${tags}, 'published', ${now}, ${now})`;
+      await db`INSERT INTO photos (id, image, caption, full_description, location, photographer,
+        image_format, photo_style, category, image_width, image_height, status, date, published_at)
+        VALUES (${newsId}, ${m.blob_url}, ${caption}, ${m.description || ""}, ${location}, ${photographer},
+        ${imgFormat}, ${style}, ${category}, ${m.width}, ${m.height}, 'published', ${now}, ${now})`;
     }
-    return newsId;
+    return { newsId };
   }
 
-  // photo
-  const category = PHOTO_CATEGORIES.has(m.category) ? m.category : null;
-  const newsId = m.news_media_id || `pho_${crypto.randomBytes(9).toString("base64url")}`;
-  const caption = m.caption || m.title || "Untitled";
-  const location = m.location || "Unknown";
+  // video
+  const newsId = m.news_id || `video_${crypto.randomBytes(9).toString("base64url")}`;
+  const vFormat = m.mime.includes("webm") ? "webm" : "mp4";
+  const title = (m.title || m.caption || "Untitled").slice(0, 300);
+  const description = m.description || m.caption || title;
+  const thumb = m.thumb_url || m.blob_url;
+  const category = m.category || "news-report";
+  const style = m.media_style || "documentary";
+  const duration = fmtDuration(m.duration_seconds);
   if (isUpdate) {
-    await db`UPDATE photos SET image = ${m.url}, caption = ${caption}, full_description = ${m.description || ""},
-      location = ${location}, photographer = ${credit}, category = ${category}, tags = ${tags},
-      updated_at = now() WHERE id = ${newsId}`;
+    await db`UPDATE videos SET title = ${title}, description = ${description}, thumbnail = ${thumb},
+      video_url = ${m.blob_url}, duration = ${duration}, duration_seconds = ${m.duration_seconds},
+      video_format = ${vFormat}, category = ${category}, video_style = ${style}, producer = ${credit},
+      status = 'published', updated_at = now() WHERE id = ${newsId}`;
   } else {
-    await db`INSERT INTO photos (id, image, caption, full_description, location, photographer, category, tags, status, date, published_at)
-      VALUES (${newsId}, ${m.url}, ${caption}, ${m.description || ""}, ${location}, ${credit}, ${category}, ${tags}, 'published', ${now}, ${now})`;
+    await db`INSERT INTO videos (id, title, description, thumbnail, video_url, duration, duration_seconds,
+      video_format, category, video_style, producer, status, date, published_at)
+      VALUES (${newsId}, ${title}, ${description}, ${thumb}, ${m.blob_url}, ${duration}, ${m.duration_seconds},
+      ${vFormat}, ${category}, ${style}, ${credit}, 'published', ${now}, ${now})`;
   }
-  return newsId;
+  return { newsId };
 }

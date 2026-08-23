@@ -7,8 +7,8 @@ import { publishMediaToNews } from "@/lib/publish";
 
 export const runtime = "nodejs";
 
-// Publish a standalone photo or video into the news database. Requires media.publish. Re-publishing
-// updates the same news row. The credit (photographer/producer) falls back to the newsroom name.
+// Publish a media asset into the news database (photos or videos). Requires media.publish. Unlike
+// stories, media has no review ladder, but publishing still records who and when in the audit log.
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const account = await getSession();
   if (!account) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
@@ -20,13 +20,13 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
   await ensureSchema();
   const { id } = await params;
-  const rows = await sql`SELECT * FROM media WHERE id = ${id} LIMIT 1`;
+
+  const rows = await sql`SELECT * FROM media_assets WHERE id = ${id} LIMIT 1`;
   if (!rows.length) return NextResponse.json({ error: "Media not found." }, { status: 404 });
   const m = rows[0] as any;
 
-  const credit = m.credit || account.name || "Dot 1 Newsroom";
-  const newsId = await publishMediaToNews(m, credit);
-  await sql`UPDATE media SET status = 'published', news_media_id = ${newsId}, updated_at = now() WHERE id = ${id}`;
-  await audit(account.email, "media.publish", "media", id, { newsId, kind: m.kind });
+  const { newsId } = await publishMediaToNews(m, m.credit || account.name || account.email);
+  await sql`UPDATE media_assets SET status = 'published', news_id = ${newsId}, updated_at = now() WHERE id = ${id}`;
+  await audit(account.email, "media.publish", "media", id, { kind: m.kind, newsId });
   return NextResponse.json({ ok: true, newsId });
 }

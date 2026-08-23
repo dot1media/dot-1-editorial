@@ -200,6 +200,38 @@ export async function ensureSchema(): Promise<void> {
   await sql`CREATE INDEX IF NOT EXISTS idx_media_kind ON media(kind, created_at DESC)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_media_story ON media(story_id)`;
 
+  // Media assets: images and video uploaded to Vercel Blob, optionally attached to a story, and
+  // publishable into the news photos/videos tables. blob_url is the canonical file; news_id points
+  // to the published row in the news database once published (so re-publish updates, not duplicates).
+  await sql`CREATE TABLE IF NOT EXISTS media_assets (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL DEFAULT 'image',
+    blob_url TEXT NOT NULL,
+    thumb_url TEXT DEFAULT '',
+    file_name TEXT DEFAULT '',
+    mime TEXT DEFAULT '',
+    size_bytes INTEGER,
+    width INTEGER,
+    height INTEGER,
+    duration_seconds INTEGER,
+    title TEXT DEFAULT '',
+    caption TEXT DEFAULT '',
+    description TEXT DEFAULT '',
+    credit TEXT DEFAULT '',
+    location TEXT DEFAULT '',
+    category TEXT DEFAULT '',
+    media_style TEXT DEFAULT '',
+    tags JSONB NOT NULL DEFAULT '[]'::jsonb,
+    story_id TEXT REFERENCES stories(id) ON DELETE SET NULL,
+    status TEXT NOT NULL DEFAULT 'library',
+    news_id TEXT,
+    uploaded_by TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_media_story ON media_assets(story_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_media_created ON media_assets(created_at DESC)`;
+
   ensured = true;
 }
 
