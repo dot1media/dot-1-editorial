@@ -30,7 +30,7 @@ export async function maybeAutoPublish(storyId: string): Promise<{ published: bo
   await sql`UPDATE stories SET scores = ${JSON.stringify(scoreObj)}::jsonb WHERE id = ${storyId}`;
 
   const fresh = await sql`SELECT * FROM stories WHERE id = ${storyId} LIMIT 1`;
-  const { newsStoryId } = await publishToNews(fresh[0] as any, fresh[0].source_name || "Dot 1 News");
+  const { newsStoryId } = await publishToNews(fresh[0] as any, fresh[0].source_name || "Dot 1 News", { dualRated: true });
   await sql`UPDATE stories SET status = 'published', news_story_id = ${newsStoryId}, published_at = COALESCE(published_at, now()), updated_at = now() WHERE id = ${storyId}`;
   await audit("ai-desk", "ai.autopublish", "story", storyId, { newsStoryId, method: rec.method });
   return { published: true };

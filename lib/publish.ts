@@ -56,7 +56,8 @@ function prepare(story: EditorialStoryRow) {
 
 export async function publishToNews(
   story: EditorialStoryRow,
-  authorLabel: string
+  authorLabel: string,
+  opts?: { dualRated?: boolean }
 ): Promise<{ newsStoryId: string; totalScore: number }> {
   assertNewsConfigured();
   const db = newsSql!;
@@ -66,6 +67,9 @@ export async function publishToNews(
   const isUpdate = !!story.news_story_id;
   const newsId = story.news_story_id || `news_${crypto.randomBytes(9).toString("base64url")}`;
   const now = new Date().toISOString();
+  // Provenance the reader app displays: publishing requires editor approval, so every published
+  // story is at least "reviewed"; AI stories that cleared the dual-rater are "verified".
+  const dualRated = !!opts?.dualRated;
 
   if (isUpdate) {
     await db`UPDATE news_stories SET
@@ -82,7 +86,8 @@ export async function publishToNews(
       hii_human_dignity = ${i.hiiHumanDignity}, hii_compassion_empathy = ${i.hiiCompassionEmpathy},
       hii_societal_impact = ${i.hiiSocietalImpact}, hii_justice_responsibility = ${i.hiiJusticeResponsibility},
       hii_christ_modeled_care = ${i.hiiChristModeledCare},
-      score_confidence = ${p.confidence}, status = 'published', updated_at = now()
+      score_confidence = ${p.confidence}, status = 'published',
+      reviewed_at = COALESCE(reviewed_at, ${now}), is_dual_rated = ${dualRated}, updated_at = now()
       WHERE id = ${newsId}`;
     return { newsStoryId: newsId, totalScore: total };
   }
@@ -95,7 +100,7 @@ export async function publishToNews(
       psi_textual_linkage, psi_eschatological_fit, psi_historical_continuity, psi_spiritual_impact, psi_theological_restraint,
       sci_primary_source_access, sci_verification, sci_transparency, sci_track_record, sci_editorial_standards,
       hii_human_dignity, hii_compassion_empathy, hii_societal_impact, hii_justice_responsibility, hii_christ_modeled_care,
-      score_confidence, status, date, published_at
+      score_confidence, status, date, published_at, reviewed_at, is_dual_rated
     ) VALUES (
       ${newsId}, ${p.headline}, ${p.summary}, ${p.content}, ${p.image}, ${p.category}, ${authorLabel}, ${[] as string[]},
       ${p.format}, ${p.wc}, ${p.readMin},
@@ -104,7 +109,7 @@ export async function publishToNews(
       ${i.psiTextualLinkage}, ${i.psiEschatologicalFit}, ${i.psiHistoricalContinuity}, ${i.psiSpiritualImpact}, ${i.psiTheologicalRestraint},
       ${i.sciPrimarySourceAccess}, ${i.sciVerification}, ${i.sciTransparency}, ${i.sciTrackRecord}, ${i.sciEditorialStandards},
       ${i.hiiHumanDignity}, ${i.hiiCompassionEmpathy}, ${i.hiiSocietalImpact}, ${i.hiiJusticeResponsibility}, ${i.hiiChristModeledCare},
-      ${p.confidence}, 'published', ${now}, ${now}
+      ${p.confidence}, 'published', ${now}, ${now}, ${now}, ${dualRated}
     )`;
   return { newsStoryId: newsId, totalScore: total };
 }
