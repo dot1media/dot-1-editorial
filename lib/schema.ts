@@ -291,6 +291,20 @@ export async function ensureSchema(): Promise<void> {
   )`;
   await sql`CREATE INDEX IF NOT EXISTS idx_segments_episode ON segments(episode_id, position)`;
 
+  // Broadcast bus: a single-row live channel the rundown writes and the OBS overlay output reads.
+  // OBS runs the overlay in its own browser that cannot share localStorage with the operator's
+  // browser, so a prepared lower-third is handed off through this server row instead of copy-paste.
+  // seq increments on every change so the overlay can cheaply detect updates by polling.
+  await sql`CREATE TABLE IF NOT EXISTS broadcast_bus (
+    id TEXT PRIMARY KEY,
+    seq INTEGER NOT NULL DEFAULT 0,
+    state JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_by TEXT,
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`INSERT INTO broadcast_bus (id, seq, state) VALUES ('current', 0, ${JSON.stringify({ lower: { on: false, kicker: "", name: "", title: "" } })}::jsonb)
+    ON CONFLICT (id) DO NOTHING`;
+
   ensured = true;
 }
 

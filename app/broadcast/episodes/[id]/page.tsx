@@ -142,9 +142,23 @@ function SegmentInspector({ segment, episode, stories, manage, reload }: any) {
     lowerThirdTitle: segment.lower_third_title || "", notes: segment.notes || "",
   });
   const [saved, setSaved] = useState(false);
+  const [busLoading, setBusLoading] = useState(false);
+  const [busMsg, setBusMsg] = useState("");
   const linkedStory = segment.story_id && stories[segment.story_id];
 
   function set(k: string, v: any) { setF((p) => ({ ...p, [k]: v })); setSaved(false); }
+
+  // Push this segment's lower-third to the OBS overlay via the server bus (or clear it).
+  async function takeLower(on: boolean) {
+    setBusLoading(true); setBusMsg("");
+    try {
+      await api("/api/broadcast/bus", { method: "POST", body: JSON.stringify({
+        lower: { on, kicker: meta.label, name: f.lowerThirdName, title: f.lowerThirdTitle },
+      }) });
+      setBusMsg(on ? "On air" : "Cleared");
+    } catch (e: any) { setBusMsg(e.message || "Could not reach the overlay."); }
+    finally { setBusLoading(false); }
+  }
 
   async function save() {
     await api(`/api/broadcast/segments/${segment.id}`, { method: "PATCH", body: JSON.stringify(f) });
@@ -203,10 +217,18 @@ function SegmentInspector({ segment, episode, stories, manage, reload }: any) {
           </div>
           {(f.lowerThirdName || f.lowerThirdTitle) && (
             <div className="card pad" style={{ background: "rgba(200,162,74,.06)" }}>
-              <div className="mini" style={{ marginBottom: 6 }}>PREPARED GRAPHIC · FOR OBS</div>
+              <div className="mini" style={{ marginBottom: 6 }}>PREPARED GRAPHIC · LOWER THIRD</div>
               <div style={{ fontWeight: 700 }}>{f.lowerThirdName}</div>
               <div className="tiny muted">{f.lowerThirdTitle}</div>
-              <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={() => navigator.clipboard?.writeText(`${f.lowerThirdName}\n${f.lowerThirdTitle}`)}>Copy for overlay dock</button>
+              {manage && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                  <button className="btn gold sm" onClick={() => takeLower(true)} disabled={busLoading}>Take to air</button>
+                  <button className="btn ghost sm" onClick={() => takeLower(false)} disabled={busLoading}>Clear</button>
+                  <button className="btn ghost sm" onClick={() => navigator.clipboard?.writeText(`${f.lowerThirdName}\n${f.lowerThirdTitle}`)}>Copy for dock</button>
+                </div>
+              )}
+              {busMsg && <div className="tiny" style={{ marginTop: 6, color: busMsg.startsWith("On air") ? "#8fd6a8" : busMsg.startsWith("Cleared") ? "var(--gold)" : "#ffb4b4" }}>{busMsg}</div>}
+              <div className="tiny muted" style={{ marginTop: 6, lineHeight: 1.5 }}>Take sends this straight to the OBS output. No copy-paste needed. Clear takes it off air.</div>
             </div>
           )}
           <div><label className="f">Producer notes</label><textarea className="in" value={f.notes} disabled={!manage} onChange={(e) => set("notes", e.target.value)} style={{ minHeight: 48 }} /></div>

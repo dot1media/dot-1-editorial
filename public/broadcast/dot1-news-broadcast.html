@@ -526,6 +526,16 @@
     window.addEventListener('storage',poll);
     setInterval(poll,250);
     poll();
+    // Server bus: receive prepared lower-thirds pushed from the editorial rundown. OBS cannot
+    // share localStorage with the operator's browser, so this same-origin fetch is how a Take
+    // from the rundown reaches the on-air output. Applies only the lower-third; nothing else.
+    var BUS_SEQ=-1;
+    function busPoll(){ fetch('/api/broadcast/bus',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
+      if(!d||typeof d.seq!=='number'||d.seq===BUS_SEQ)return; BUS_SEQ=d.seq; var lo=d.lower||{};
+      $('inKicker').value=lo.kicker||''; $('inTitle').value=lo.name||''; $('inSub').value=lo.title||'';
+      renderLower(); lowerOn=!!lo.on; $('lower').classList.toggle('on',lowerOn);
+    }).catch(function(){}); }
+    setInterval(busPoll,1000); busPoll();
   } else {
     try{var raw0=localStorage.getItem('d1n_show');if(raw0){applyState(JSON.parse(raw0));}}catch(e){}
     syncButtons();
