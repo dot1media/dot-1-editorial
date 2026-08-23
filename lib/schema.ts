@@ -175,6 +175,31 @@ export async function ensureSchema(): Promise<void> {
   )`;
   await sql`CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC)`;
 
+  // Media library: photos and videos uploaded in the portal, with the metadata the news app needs,
+  // tracked here so we know what has been published and can update the same news row later.
+  await sql`CREATE TABLE IF NOT EXISTS media (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL DEFAULT 'photo',
+    url TEXT NOT NULL,
+    thumbnail_url TEXT DEFAULT '',
+    title TEXT DEFAULT '',
+    caption TEXT DEFAULT '',
+    description TEXT DEFAULT '',
+    location TEXT DEFAULT '',
+    credit TEXT DEFAULT '',
+    category TEXT DEFAULT '',
+    duration TEXT DEFAULT '',
+    tags JSONB NOT NULL DEFAULT '[]'::jsonb,
+    story_id TEXT,
+    status TEXT NOT NULL DEFAULT 'draft',
+    news_media_id TEXT,
+    uploaded_by TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_media_kind ON media(kind, created_at DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_media_story ON media(story_id)`;
+
   ensured = true;
 }
 

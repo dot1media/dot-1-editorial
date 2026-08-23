@@ -114,3 +114,68 @@ export async function unpublishFromNews(newsStoryId: string): Promise<void> {
   assertNewsConfigured();
   await newsSql!`UPDATE news_stories SET status = 'archived', updated_at = now() WHERE id = ${newsStoryId}`;
 }
+
+// ---- Media publishing -------------------------------------------------------------------------
+// Standalone photos and videos publish into the news photos/videos tables, matching their schema
+// (required NOT NULL columns filled with sensible fallbacks). Like stories, a published media item
+// keeps a pointer (news_media_id) so re-publishing updates the same news row.
+
+export interface MediaRow {
+  id: string;
+  kind: string;
+  url: string;
+  thumbnail_url: string;
+  title: string;
+  caption: string;
+  description: string;
+  location: string;
+  credit: string;
+  category: string;
+  duration: string;
+  tags: any;
+  news_media_id: string | null;
+}
+
+const PHOTO_CATEGORIES = new Set(["conflict", "humanitarian", "environment", "culture", "sports", "wildlife", "urban", "faith"]);
+const VIDEO_CATEGORIES = new Set(["documentary", "interview", "investigation", "testimony", "teaching", "news-report", "short-film"]);
+
+export async function publishMediaToNews(m: MediaRow, credit: string): Promise<string> {
+  assertNewsConfigured();
+  const db = newsSql!;
+  const now = new Date().toISOString();
+  const tags: string[] = Array.isArray(m.tags) ? m.tags : [];
+  const isUpdate = !!m.news_media_id;
+
+  if (m.kind === "video") {
+    const category = VIDEO_CATEGORIES.has(m.category) ? m.category : "news-report";
+    const newsId = m.news_media_id || `vid_${crypto.randomBytes(9).toString("base64url")}`;
+    const title = m.title || m.caption || "Untitled";
+    const description = m.description || m.caption || title;
+    const thumb = m.thumbnail_url || m.url;
+    const duration = m.duration || "0:00";
+    if (isUpdate) {
+      await db`UPDATE videos SET title = ${title}, description = ${description}, thumbnail = ${thumb},
+        video_url = ${m.url}, duration = ${duration}, category = ${category}, producer = ${credit},
+        tags = ${tags}, updated_at = now() WHERE id = ${newsId}`;
+    } else {
+      await db`INSERT INTO videos (id, title, description, thumbnail, video_url, duration, category, producer, tags, status, date, published_at)
+        VALUES (${newsId}, ${title}, ${description}, ${thumb}, ${m.url}, ${duration}, ${category}, ${credit}, ${tags}, 'published', ${now}, ${now})`;
+    }
+    return newsId;
+  }
+
+  // photo
+  const category = PHOTO_CATEGORIES.has(m.category) ? m.category : null;
+  const newsId = m.news_media_id || `pho_${crypto.randomBytes(9).toString("base64url")}`;
+  const caption = m.caption || m.title || "Untitled";
+  const location = m.location || "Unknown";
+  if (isUpdate) {
+    await db`UPDATE photos SET image = ${m.url}, caption = ${caption}, full_description = ${m.description || ""},
+      location = ${location}, photographer = ${credit}, category = ${category}, tags = ${tags},
+      updated_at = now() WHERE id = ${newsId}`;
+  } else {
+    await db`INSERT INTO photos (id, image, caption, full_description, location, photographer, category, tags, status, date, published_at)
+      VALUES (${newsId}, ${m.url}, ${caption}, ${m.description || ""}, ${location}, ${credit}, ${category}, ${tags}, 'published', ${now}, ${now})`;
+  }
+  return newsId;
+}

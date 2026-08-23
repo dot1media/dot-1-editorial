@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { api } from "@/lib/client";
+import { useState, useRef } from "react";
+import { api, uploadFile, downscaleImage } from "@/lib/client";
 import { CLASSIFICATIONS, CATEGORIES, PRIORITIES } from "@/lib/newsroom";
 import type { Capability } from "@/lib/permissions";
 
@@ -22,8 +22,24 @@ export default function StoryTab({ data, reload, can }: { data: any; reload: () 
   });
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const heroRef = useRef<HTMLInputElement>(null);
+  const [heroBusy, setHeroBusy] = useState(false);
 
   function set(k: string, v: string) { setF((p) => ({ ...p, [k]: v })); setSaved(false); }
+
+  async function uploadHero(file: File | undefined) {
+    if (!file) return;
+    setHeroBusy(true);
+    try {
+      const small = await downscaleImage(file, 2400);
+      const url = await uploadFile(small, "hero");
+      set("heroImage", url);
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setHeroBusy(false);
+    }
+  }
 
   async function save() {
     setBusy(true);
@@ -69,7 +85,19 @@ export default function StoryTab({ data, reload, can }: { data: any; reload: () 
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div><label className="f">Location</label><input className="in" value={f.location} disabled={!editable} onChange={(e) => set("location", e.target.value)} /></div>
-          <div><label className="f">Hero image URL</label><input className="in" value={f.heroImage} disabled={!editable} onChange={(e) => set("heroImage", e.target.value)} /></div>
+          <div>
+            <label className="f">Hero image</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input className="in" value={f.heroImage} disabled={!editable} onChange={(e) => set("heroImage", e.target.value)} placeholder="URL, or upload →" />
+              {editable && (
+                <>
+                  <input ref={heroRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => uploadHero(e.target.files?.[0])} />
+                  <button className="btn ghost" type="button" onClick={() => heroRef.current?.click()} disabled={heroBusy} style={{ flex: "none" }}>{heroBusy ? "…" : "Upload"}</button>
+                </>
+              )}
+            </div>
+            {f.heroImage && <img src={f.heroImage} alt="" style={{ marginTop: 8, width: "100%", maxHeight: 140, objectFit: "cover", borderRadius: 6 }} />}
+          </div>
         </div>
       </div>
 
