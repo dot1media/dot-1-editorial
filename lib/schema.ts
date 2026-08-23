@@ -305,6 +305,31 @@ export async function ensureSchema(): Promise<void> {
   await sql`INSERT INTO broadcast_bus (id, seq, state) VALUES ('current', 0, ${JSON.stringify({ lower: { on: false, kicker: "", name: "", title: "" } })}::jsonb)
     ON CONFLICT (id) DO NOTHING`;
 
+  // Origin + provenance for AI-generated stories. Human stories default to 'human'; the AI desk
+  // writes 'ai' with the source item it was generated from, so the newsroom can see where a draft
+  // came from and dedupe against feeds.
+  await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS origin TEXT NOT NULL DEFAULT 'human'`;
+  await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS source_url TEXT DEFAULT ''`;
+  await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS source_name TEXT DEFAULT ''`;
+  await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS ai_model TEXT DEFAULT ''`;
+  await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS auto_publish BOOLEAN NOT NULL DEFAULT false`;
+
+  // Dual-rater scoring, folded into the review workflow. Each story can carry more than one D1-4LS
+  // rating: the AI scorer is the first rater on an AI draft, a human is the second, and a third
+  // breaks a divergence. The reconciled result is written back to stories.scores. Ratings are kept
+  // so the newsroom can see how raters differed.
+  await sql`CREATE TABLE IF NOT EXISTS story_ratings (
+    id TEXT PRIMARY KEY,
+    story_id TEXT NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+    rater_kind TEXT NOT NULL DEFAULT 'human',
+    rater_id TEXT DEFAULT '',
+    rater_name TEXT DEFAULT '',
+    scores JSONB NOT NULL,
+    notes TEXT DEFAULT '',
+    created_at TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_story_ratings_story ON story_ratings(story_id, created_at)`;
+
   ensured = true;
 }
 

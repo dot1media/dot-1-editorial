@@ -140,3 +140,7 @@ table.grid-t tr:hover td { background: rgba(244, 240, 231, 0.03); }
 .logent { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(53,48,42,.4); }
 .logent .ts { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; color: var(--gold); white-space: nowrap; padding-top: 2px; }
 .logent .who { font-size: 10.5px; color: var(--dimmer); }
+
+/* Spinner for async actions (AI desk generate, etc.) */
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
