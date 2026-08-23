@@ -34,5 +34,17 @@ export async function recomputeReviewState(storyId: string): Promise<ReviewState
   if (state === "editor_approved" && checklistDone) state = "ready_to_publish";
 
   await sql`UPDATE stories SET review_state = ${state}, updated_at = now() WHERE id = ${storyId}`;
+
+  // If this brought an opted-in AI story to ready-to-publish and its dual-rate is complete, publish
+  // it automatically. Fully guarded and idempotent; wrapped so a publish hiccup never breaks review.
+  if (state === "ready_to_publish") {
+    try {
+      const { maybeAutoPublish } = await import("@/lib/ai/autopublish");
+      await maybeAutoPublish(storyId);
+    } catch (e) {
+      console.error("auto-publish check failed:", e);
+    }
+  }
+
   return state;
 }
