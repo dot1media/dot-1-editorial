@@ -20,12 +20,12 @@ export default function AccountsPage() {
   useEffect(() => { load(); }, []);
 
   return (
-    <Shell title="Accounts" subtitle="Roles set the defaults. Overrides tune any one person."
+    <Shell title="Accounts" subtitle="Roles are set in the portal. Overrides fine-tune any one person here."
       actions={<button className="btn primary" onClick={() => setAdding(true)}><Plus size={15} /> Add account</button>}>
       {!loaded ? <span className="mono muted tiny">Loading…</span> : (
         <div className="card">
           <table className="grid-t">
-            <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Overrides</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Email</th><th>Name</th><th>Role (from portal)</th><th>Overrides</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {accounts.map((a) => {
                 const ovCount = Object.keys(a.overrides || {}).length;
@@ -71,11 +71,11 @@ function AddModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => vo
           <div className="disp" style={{ fontSize: 22, fontWeight: 700 }}>Add account</div>
           <div><label className="f">Email (@dot1.media)</label><input className="in" value={email} onChange={(e) => setEmail(e.target.value)} autoFocus /></div>
           <div><label className="f">Name</label><input className="in" value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div><label className="f">Role</label>
+          <div><label className="f">Initial role</label>
             <select className="in" value={role} onChange={(e) => setRole(e.target.value as Role)}>
               {ROLES.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
             </select>
-            <div className="tiny muted" style={{ marginTop: 6 }}>{ROLES.find((r) => r.id === role)?.blurb}</div>
+            <div className="tiny muted" style={{ marginTop: 6 }}>Placeholder until they first sign in. Their real role comes from the portal grant and syncs automatically. Set it in the portal account manager.</div>
           </div>
           {err && <div className="tiny" style={{ color: "#ffb4b4" }}>{err}</div>}
           <div className="tiny muted" style={{ lineHeight: 1.5 }}>They sign in with Dot One SSO. No password is set here.</div>
@@ -136,10 +136,11 @@ function EditModal({ account, onClose, onSaved }: { account: any; onClose: () =>
           </div>
 
           <div>
-            <label className="f">Role (sets the defaults)</label>
-            <select className="in" value={role} onChange={(e) => { setRole(e.target.value as Role); setOverrides({}); }} style={{ maxWidth: 260 }}>
-              {ROLES.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
-            </select>
+            <label className="f">Role (baseline from portal)</label>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span className="chip gold" style={{ textTransform: "capitalize" }}>{role}</span>
+              <span className="tiny muted">Change this in the portal account manager.</span>
+            </div>
             <div className="tiny muted" style={{ marginTop: 6 }}>{ROLES.find((r) => r.id === role)?.blurb}</div>
           </div>
 

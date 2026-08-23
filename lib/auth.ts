@@ -16,7 +16,7 @@ function sign(payloadObj: object): string {
   return body + "." + sig;
 }
 
-function verify(token: string | undefined | null, role: string): { email: string } | null {
+function verify(token: string | undefined | null, role: string): { email: string; tier?: string; grants?: any } | null {
   const secret = process.env.SESSION_SECRET || "";
   if (!token || !secret) return null;
   const [body, sig] = token.split(".");
@@ -28,7 +28,9 @@ function verify(token: string | undefined | null, role: string): { email: string
   try {
     const payload = JSON.parse(Buffer.from(body, "base64url").toString());
     if (payload.role !== role || typeof payload.exp !== "number" || Date.now() > payload.exp) return null;
-    return { email: String(payload.email || "") };
+    // The portal bakes suite claims (tier + per-app grants) into the cookie. We read them as a
+    // fast fallback for when the portal can't be reached for a fresh check.
+    return { email: String(payload.email || ""), tier: payload.tier, grants: payload.grants };
   } catch {
     return null;
   }
