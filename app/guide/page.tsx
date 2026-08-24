@@ -175,6 +175,14 @@ export default function GuidePage() {
     <Shell title="Newsroom Guide" subtitle="How content reaches readers, who does each task, and what to do when something looks wrong.">
       <div style={{ maxWidth: 860 }}>
 
+        <Section title="Printable handouts">
+          <P>Two PDFs you can print or hand to a new person. They stay in sync with this guide.</P>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <a className="btn primary sm" href="/docs/Dot1News-Newsroom-QuickStart.pdf" target="_blank" rel="noreferrer">Newsroom Quick Start (2 pages)</a>
+            <a className="btn primary sm" href="/docs/Dot1News-Broadcast-Guide.pdf" target="_blank" rel="noreferrer">Live Broadcast Guide (ATEM + OBS)</a>
+          </div>
+        </Section>
+
         <Section title="The big picture">
           <FlowDiagram />
           <P>A story can start three ways: a reporter writes it, the <b>AI Desk</b> generates it from the wire, or it arrives as a public <b>tip</b>. However it starts, it moves through the same pipeline: reporting and sources, then verification, then editorial review, then scoring, then publication.</P>
