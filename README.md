@@ -115,6 +115,20 @@ graphics page drives the bug, ticker, and breaking banner. The overlay output
 public (anonymous OBS source, non-sensitive text); `POST` needs `broadcast.manage` and merges
 per element.
 
+## Live streaming (Cloudflare Stream)
+
+Live goes out through Cloudflare Stream. The portal is the control plane (`lib/cloudflare.ts`): it
+creates/holds the live input (ingest URL + stream key stay private in the editorial DB `live_config`)
+and, on Go Live, writes the public on-air state (is_live + HLS/player URLs) into the news DB
+`live_state`. `/broadcast/live` (gated `broadcast.golive`) provisions the input, shows the OBS
+Server + Stream key, and toggles Go Live / End. The news site serves `/live` (Cloudflare player when
+on air) and `/api/live` (JSON); the app shows a LIVE home banner and a watch screen that plays the
+HLS feed. Recording mode is automatic, so an ended stream is kept as a VOD.
+
+Env (editorial project): `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_STREAM_TOKEN` (Stream:Edit),
+`CLOUDFLARE_STREAM_CUSTOMER_CODE` (the customer subdomain code only). Absent these, the control page
+shows setup instructions and nothing streams.
+
 ## Public policy pages
 
 Standards, corrections, ownership, advertising, and contact are edited here but served on

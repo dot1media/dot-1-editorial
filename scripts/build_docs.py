@@ -289,7 +289,37 @@ def build_broadcast():
     d.txt(54, y - 12, "or run both at once on a machine with the horsepower using OBS multiple-output / a second instance.", 8.4, "Helvetica", INK)
     d.footer(); d.c.showPage()
 
-    # ---- Page 5: dry-run + troubleshooting ----
+    # ---- Page 5: going live ----
+    d.header("Live Broadcast Guide", "Going live \u00b7 Cloudflare Stream")
+    y = H - 138
+    d.rrect(54, y - 6, W - 108, 30, 6, fill=HexColor("#f6efe0"), stroke=GOLD, sw=1)
+    d.txt(64, y + 10, "Live streams to news.dot1.media and the app through Cloudflare Stream.", 9, "Helvetica-Bold", DEEP)
+    d.txt(64, y - 2, "You control it from the portal: Broadcast \u2192 Go live. The recording is kept automatically.", 8.4, "Helvetica", INK)
+    y -= 44
+    d.kicker(54, y, "ONE-TIME SETUP"); y -= 18
+    y = d.bullets(54, y, [
+        "Maintainer: on the editorial project set CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_STREAM_TOKEN (Stream:Edit), and",
+        "     CLOUDFLARE_STREAM_CUSTOMER_CODE (just the code, e.g. lknaw9\u2026, not the full hostname); redeploy.",
+        "Producer: Broadcast \u2192 Go live \u2192 Set up live input (once). Copy the Server URL and Stream key it shows.",
+    ], lead=15)
+    y -= 8; d.kicker(54, y, "EACH BROADCAST"); y -= 18
+    y = d.bullets(54, y, [
+        "OBS: Settings \u2192 Stream \u2192 Service \u201cCustom\u201d. Paste the Server into Server and the Stream key into Stream Key.",
+        "Build your program as usual (ATEM feed + the graphics overlay), then Start Streaming in OBS.",
+        "In the portal, press Go live and set a title. A Live surface appears on the site and app within seconds.",
+        "Drive lower thirds, bug, ticker, breaking from On-air graphics exactly as normal \u2014 they ride in the stream.",
+        "Press End broadcast when done. Cloudflare saves the recording, which can become a posted episode.",
+    ], lead=15)
+    y -= 8; d.kicker(54, y, "GOOD TO KNOW"); y -= 18
+    y = d.bullets(54, y, [
+        "After OBS connects there's a 10\u201320 second beat before the stream is playable \u2014 refresh /live if it's black.",
+        "Live video always runs a short delay behind real time. That's normal for live HLS, not a fault.",
+        "The Stream key is a credential (anyone with it can push to your input). It's Producer/Owner only \u2014 keep it private.",
+        "If the key ever leaks, ask for a new live input to be provisioned (rotates the key).",
+    ], lead=15)
+    d.footer(); d.c.showPage()
+
+    # ---- Page 6: dry-run + troubleshooting ----
     d.header("Live Broadcast Guide", "Friday dry-run \u00b7 Troubleshooting")
     y = H - 134
     d.kicker(54, y, "PRE-FLIGHT, IN ORDER"); y -= 17
