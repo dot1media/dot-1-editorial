@@ -34,6 +34,7 @@ export default function BroadcastHome() {
     <Shell title="Broadcast" subtitle="Plan the show, write the script, remember what aired."
       actions={
         <div style={{ display: "flex", gap: 8 }}>
+          <Link href="/broadcast/live" className="btn ghost"><Radio size={15} /> Go live</Link>
           <Link href="/broadcast/graphics" className="btn ghost"><Wrench size={15} /> On-air graphics</Link>
           <Link href="/broadcast/tools" className="btn ghost"><Wrench size={15} /> Live tools</Link>
           {can("broadcast.manage") && <button className="btn primary" onClick={() => setCreating(true)}><Plus size={15} /> New episode</button>}
