@@ -228,6 +228,7 @@ export default function GuidePage() {
         <Section title="Run the on-air graphics (broadcast)" who={["Producer", "Owner"]}>
           <GraphicsMock />
           <P>Lower thirds come from a rundown: open an episode, pick a segment, and use Take to air and Clear. The bug, ticker, and breaking banner come from Broadcast, then On-air graphics. Both reach OBS through a server bus, because OBS runs its own browser that can't share with yours. Point an OBS browser source at the overlay output; pushes appear within a second. This is a producer action, editors can watch the broadcast area but don't drive graphics.</P>
+          <P><b>Two formats, one control.</b> There are two overlays, a 16:9 program and a 9:16 vertical for TikTok, Reels, and Shorts. Both read the same bus, so a single push drives both at once. On the vertical, the ticker shows as a headline strap instead of a crawl. Get both OBS URLs from Broadcast, then Live tools, and see the printable Live Broadcast Guide above for the full ATEM, camera, and audio setup.</P>
         </Section>
 
         <Section title="Standards, corrections, accounts, audit" who={["Editor", "Owner"]}>

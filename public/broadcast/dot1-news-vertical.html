@@ -226,10 +226,13 @@ f.style.top=(barH+pad)+"px";
 }
 function restore(){try{const raw=localStorage.getItem("d1n_vert");if(raw){applyState(JSON.parse(raw));return true}}catch(e){}return false}
 if(MODE==="output"){
-const poll=()=>{try{const raw=localStorage.getItem("d1n_vert");if(raw){const s=JSON.parse(raw);if(s.seq!==LAST_SEQ){LAST_SEQ=s.seq;applyState(s)}}}catch(e){}};
-window.addEventListener("storage",poll);
-setInterval(poll,250);
-poll();
+/* Portal-driven: the OBS output reads the shared broadcast bus and maps each element onto the
+   vertical graphics (lower third, bug w/ color + live, breaking, and the ticker onto the strap). */
+const b2s=d=>{var lo=d.lower||{},bg=d.bug||{},bk=d.breaking||{},tk=d.ticker||{},cm={white:"w",red:"r",black:"b"};
+return {seq:d.seq,fields:{iBreak:bk.text||"",iKick:tk.label||"LATEST",iHead:(tk.headlines||"").split("|")[0]||"",iName:lo.name||"",iRole:lo.title||""},
+on:{bug:!!bg.on,live:!!bg.live,clock:false,breaking:!!bk.on,strap:!!tk.on,lower:!!lo.on},color:cm[bg.color]||"w"};};
+const poll=()=>{fetch("/api/broadcast/bus",{cache:"no-store"}).then(r=>r.json()).then(d=>{if(d&&typeof d.seq==="number"&&d.seq!==LAST_SEQ){LAST_SEQ=d.seq;applyState(b2s(d));}}).catch(()=>{});};
+setInterval(poll,1000);poll();
 }else if(MODE==="panel"){
 $("pvtext").textContent="D1N CONTROL · VERTICAL FRAME · TYPE HERE, THE PROGRAM UPDATES";
 restore();
