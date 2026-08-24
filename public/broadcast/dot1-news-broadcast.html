@@ -531,9 +531,20 @@
     // from the rundown reaches the on-air output. Applies only the lower-third; nothing else.
     var BUS_SEQ=-1;
     function busPoll(){ fetch('/api/broadcast/bus',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
-      if(!d||typeof d.seq!=='number'||d.seq===BUS_SEQ)return; BUS_SEQ=d.seq; var lo=d.lower||{};
+      if(!d||typeof d.seq!=='number'||d.seq===BUS_SEQ)return; BUS_SEQ=d.seq;
+      // Lower third
+      var lo=d.lower||{};
       $('inKicker').value=lo.kicker||''; $('inTitle').value=lo.name||''; $('inSub').value=lo.title||'';
       renderLower(); lowerOn=!!lo.on; $('lower').classList.toggle('on',lowerOn);
+      // Logo bug (optional color: white|red|black)
+      if(d.bug){ if(d.bug.color){ setBug(d.bug.color); } bugOn=!!d.bug.on; $('bug').classList.toggle('on',bugOn);
+        if(typeof d.bug.live!=='undefined'){ liveOn=!!d.bug.live; $('bug').classList.toggle('nolive',!liveOn); } }
+      // Ticker / crawl (headlines separated by |, plus a label)
+      if(d.ticker){ if(typeof d.ticker.headlines==='string'){ $('inCrawl').value=d.ticker.headlines; }
+        if(typeof d.ticker.label==='string'){ $('inNow').value=d.ticker.label; } setCrawl();
+        tkOn=!!d.ticker.on; $('ticker').classList.toggle('on',tkOn); }
+      // Breaking banner
+      if(d.breaking){ $('bkText').textContent=d.breaking.text||'Breaking'; bkOn=!!d.breaking.on; $('breaking').classList.toggle('on',bkOn); }
     }).catch(function(){}); }
     setInterval(busPoll,1000); busPoll();
   } else {
