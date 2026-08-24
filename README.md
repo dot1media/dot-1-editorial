@@ -70,17 +70,54 @@ captured before the number, and the score informs the editor rather than decidin
 |---|---|
 | `/` | Newsroom dashboard: pipeline counts, workflow map, recent stories |
 | `/stories`, `/stories/[id]` | Story list and the full story workspace (all tabs) |
-| `/tips` | Public tip triage, promote-to-story |
+| `/ai` | AI Desk: generate drafts from the wire, list recent AI drafts |
+| `/tips` | Public tip triage (from app, news site, main site), promote-to-story |
 | `/review` | Review queue |
-| `/standards` | Editable public standards pages |
+| `/media` | Media library (Vercel Blob) |
+| `/published` | Manage everything live on the news site: edit/delete articles, photos, videos |
+| `/broadcast` | Rundown, teleprompter, weather, and On-air graphics control |
+| `/broadcast/graphics` | Push the logo bug, ticker, and breaking banner to the OBS output |
+| `/standards` | Editable content behind the public policy pages (served on news.dot1.media) |
 | `/accounts` | Roles and per-capability overrides |
 | `/audit` | Append-only audit log |
-| `/broadcast` | Phase two: rundown, teleprompter, graphics, live control |
-| `/api/*` | Story workflow, publishing, accounts, tips, standards, audit |
+| `/guide` | Staff guide: how the flow works and how to troubleshoot |
+| `/api/*` | Story workflow, AI pipeline, publishing, ratings, published archive, broadcast bus, tips, accounts, audit |
 
-## Still to come (phase two)
+## AI generation pipeline
 
-The Live Broadcast / Production system — broadcast records, the drag-and-drop rundown with runtime
-math, teleprompter view, graphics manager, breaking-news mode, the technical checklist, and the
-live dashboard — builds on this same foundation and connects directly to Story Records. The
-newsroom workflow and the publishing pipeline came first, methodically, as planned.
+The newsroom generates its own drafts. `lib/ai/` ports the two-pass writer + skeptical-scorer
+generation and the RSS front end; `/api/ai/generate` (manual) and `/api/cron/generate` (scheduled,
+guarded by `AI_PIPELINE_ENABLED`, `CRON_SECRET`, and a daily cap) pull the wire, dedupe, write and
+score drafts, and land them as editorial stories (`origin = 'ai'`) in Verification. The AI scorer is
+recorded as the first rating.
+
+## Dual-rater and auto-publish
+
+Scoring is dual-rated (`lib/ai/rate.ts`): the AI scorer plus a human second rater, reconciled by
+closest-two average with a third rater when they diverge past the variance threshold (ported from
+the news app). When an AI story is both Ready to Publish and dual-rate complete, it auto-publishes
+(`lib/ai/autopublish.ts`, hooked into `recomputeReviewState`). Publishing sets `reviewed_at` and
+`is_dual_rated` on the news row so the app shows the correct provenance mark.
+
+## Published archive
+
+`/published` reads and writes the news database directly (`lib/newsArchive.ts`), so it manages
+everything live on the site, including older pipeline articles that never existed as editorial
+stories. Edits and deletes are immediate; deleting an article also unlinks and archives its
+editorial story.
+
+## Broadcast graphics bus
+
+OBS runs an isolated browser, so graphics reach the program output through a server bus
+(`broadcast_bus`, `/api/broadcast/bus`). The rundown takes lower thirds per segment; the On-air
+graphics page drives the bug, ticker, and breaking banner. The overlay output
+(`public/broadcast/dot1-news-broadcast.html`) polls the bus and applies each element. `GET` is
+public (anonymous OBS source, non-sensitive text); `POST` needs `broadcast.manage` and merges
+per element.
+
+## Public policy pages
+
+Standards, corrections, ownership, advertising, and contact are edited here but served on
+**news.dot1.media** so the public never touches the editorial domain. `/api/public/policy/[slug]`
+exposes the content read-only; the news backend renders it. Editorial `/policy/*` URLs redirect to
+their news equivalents.
