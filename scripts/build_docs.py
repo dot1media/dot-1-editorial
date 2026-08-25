@@ -387,4 +387,9 @@ def build_broadcast():
 if __name__ == "__main__":
     build_quickstart()
     build_broadcast()
+    try:
+        from build_manual import build as build_manual
+        build_manual()
+    except Exception as e:
+        print("manual build skipped:", e)
     print("Built:", os.listdir(OUT))
