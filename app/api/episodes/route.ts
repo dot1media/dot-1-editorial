@@ -5,6 +5,7 @@ import { can } from "@/lib/permissions";
 import { audit } from "@/lib/schema";
 import { readJson } from "@/lib/api";
 import { playbackUrls, thumbnailUrl, cfGetVideo } from "@/lib/cloudflare";
+import { sendPushToAll } from "@/lib/push";
 import crypto from "crypto";
 
 export const runtime = "nodejs";
@@ -49,5 +50,6 @@ export async function POST(request: Request) {
     'hls', ${category}, 'episode', ${producer}, ${publish ? "published" : "draft"}, ${now}, ${publish ? now : null}
   )`;
   await audit(account.email, "episode.publish", "video", id, { uid, publish });
+  if (publish) sendPushToAll("New episode", title, { type: "episode" }).catch(() => {});
   return NextResponse.json({ ok: true, id, published: publish });
 }

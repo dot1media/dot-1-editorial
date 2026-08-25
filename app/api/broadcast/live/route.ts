@@ -4,6 +4,7 @@ import { requireCapability } from "@/lib/session";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/schema";
 import { readJson } from "@/lib/api";
+import { sendPushToAll } from "@/lib/push";
 import {
   cfConfigured, cfCreateLiveInput, playbackUrls, ensureLiveTables, getLiveConfig, getLiveState,
 } from "@/lib/cloudflare";
@@ -64,6 +65,8 @@ export async function POST(request: Request) {
     await newsSql`UPDATE live_state SET is_live = true, title = ${(title || "Dot 1 News Live").slice(0, 200)},
       hls_url = ${cfg.hls_url}, player_url = ${cfg.player_url}, started_at = now(), updated_at = now() WHERE id = 'current'`;
     await audit(account.email, "live.golive", "live_state", "current", { title });
+    // Notify readers we're on air (best-effort; don't block going live)
+    sendPushToAll("Dot 1 News is live", (title || "We're on air now. Tap to watch."), { type: "live" }).catch(() => {});
     return NextResponse.json({ ok: true, isLive: true });
   }
 
