@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { newsSql, newsConfigured } from "@/lib/db";
 import { requireCapability } from "@/lib/session";
+import { can } from "@/lib/permissions";
 import { audit } from "@/lib/schema";
 import { readJson } from "@/lib/api";
 import { playbackUrls, thumbnailUrl, cfGetVideo } from "@/lib/cloudflare";
@@ -17,9 +18,11 @@ function fmtDur(s: number) {
 
 // Publish (or draft) an episode after its file finished uploading to Cloudflare.
 export async function POST(request: Request) {
-  const gate = await requireCapability("media.publish");
+  const gate = await requireCapability("broadcast.view");
   if ("response" in gate) return gate.response;
   const { account } = gate;
+  if (!can(account.permissions, "media.publish") && !can(account.permissions, "broadcast.golive"))
+    return NextResponse.json({ error: "You don't have permission to publish episodes." }, { status: 403 });
   if (!newsConfigured()) return NextResponse.json({ error: "News database isn't configured." }, { status: 503 });
 
   const b = await readJson(request);

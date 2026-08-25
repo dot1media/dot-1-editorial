@@ -289,7 +289,37 @@ def build_broadcast():
     d.txt(54, y - 12, "or run both at once on a machine with the horsepower using OBS multiple-output / a second instance.", 8.4, "Helvetica", INK)
     d.footer(); d.c.showPage()
 
-    # ---- Page 5: going live ----
+    # ---- Page 5: publishing a recorded episode ----
+    d.header("Live Broadcast Guide", "Recorded episodes")
+    y = H - 138
+    d.rrect(54, y - 6, W - 108, 30, 6, fill=HexColor("#f6efe0"), stroke=GOLD, sw=1)
+    d.txt(64, y + 10, "Record, edit in DaVinci, then upload the finished cut.", 9, "Helvetica-Bold", DEEP)
+    d.txt(64, y - 2, "Episodes go to Cloudflare Stream (same as live) and appear in the app and site.", 8.4, "Helvetica", INK)
+    y -= 44
+    d.kicker(54, y, "THE WORKFLOW"); y -= 18
+    y = d.bullets(54, y, [
+        "Record the show in OBS, or use the ATEM's ISO record to a USB-C SSD for separate camera files.",
+        "Edit and color in DaVinci Resolve. Export a finished file (H.264/H.265 MP4 is ideal).",
+        "In the portal: Broadcast \u2192 Publish episode. Add title, description, category, and host.",
+        "Drop in the exported file and press Upload & publish (or Upload as draft to hold it).",
+    ], lead=15)
+    y -= 8; d.kicker(54, y, "WHAT HAPPENS"); y -= 18
+    y = d.bullets(54, y, [
+        "The file uploads straight to Cloudflare Stream, resumable \u2014 a large export won't choke, and a hiccup resumes.",
+        "Keep the tab open until the progress bar reaches 100%.",
+        "Cloudflare encodes it (a few minutes) and generates the thumbnail; then it appears in the app and site.",
+        "Manage every episode under Published \u2192 Videos (edit details or delete), same as any video.",
+    ], lead=15)
+    y -= 8; d.kicker(54, y, "GOOD TO KNOW"); y -= 18
+    y = d.bullets(54, y, [
+        "Live and recorded share one video pipeline (Cloudflare Stream), so there's nothing extra to set up.",
+        "Producers, editors, and owners can publish episodes.",
+        "Export at 1080p to match the rest of the chain; very large 4K files upload slower.",
+        "The episode plays as adaptive HLS, so it works on any connection and device.",
+    ], lead=15)
+    d.footer(); d.c.showPage()
+
+    # ---- Page 6: going live ----
     d.header("Live Broadcast Guide", "Going live \u00b7 Cloudflare Stream")
     y = H - 138
     d.rrect(54, y - 6, W - 108, 30, 6, fill=HexColor("#f6efe0"), stroke=GOLD, sw=1)

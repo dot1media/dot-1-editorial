@@ -11,7 +11,7 @@ type Stage = "form" | "uploading" | "publishing" | "done" | "error";
 
 export default function PublishEpisodePage() {
   const { can } = useMe();
-  const mayPublish = can("media.publish");
+  const mayPublish = can("media.publish") || can("broadcast.golive");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>(CATEGORIES[0]);

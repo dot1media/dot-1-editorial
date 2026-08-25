@@ -231,6 +231,11 @@ export default function GuidePage() {
           <P><b>Two formats, one control.</b> There are two overlays, a 16:9 program and a 9:16 vertical for TikTok, Reels, and Shorts. Both read the same bus, so a single push drives both at once. On the vertical, the ticker shows as a headline strap instead of a crawl. Get both OBS URLs from Broadcast, then Live tools, and see the printable Live Broadcast Guide above for the full ATEM, camera, and audio setup.</P>
         </Section>
 
+        <Section title="Publish a recorded episode" who={["Producer", "Editor", "Owner"]}>
+          <P>Recorded shows are produced the way you'd expect: record in OBS or the ATEM, edit and color in DaVinci, and export the finished cut. Then in Broadcast, then Publish episode, add a title, description, category, and host, drop in the exported file, and press Upload &amp; publish (or save as draft).</P>
+          <P>The file uploads straight to Cloudflare Stream (resumable, so a large export is fine), which encodes it and makes the thumbnail. It appears in the app and site once ready, and lives under Published, then Videos, where it can be edited or removed like any other video. Same video pipeline as live; nothing extra to set up.</P>
+        </Section>
+
         <Section title="Go live to the site and app" who={["Producer", "Owner"]}>
           <P>Live streaming runs through Cloudflare Stream. One-time, a maintainer sets the Cloudflare keys on the portal, then a producer opens Broadcast, then Go live, and presses Set up live input once. That returns an OBS Server URL and a Stream key (keep the key private).</P>
           <P>To broadcast: put that Server and Stream key into OBS (Settings, Stream, service Custom), Start Streaming, then press <b>Go live</b> in the portal and give it a title. A Live surface appears on news.dot1.media and as a red LIVE banner in the app within seconds. Push lower thirds, bug, ticker, and breaking from On-air graphics exactly as normal. Press <b>End broadcast</b> when done; Cloudflare keeps the recording, which can become a posted episode.</P>
