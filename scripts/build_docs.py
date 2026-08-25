@@ -392,4 +392,9 @@ if __name__ == "__main__":
         build_manual()
     except Exception as e:
         print("manual build skipped:", e)
+    try:
+        from build_packets import build as build_packets
+        build_packets()
+    except Exception as e:
+        print("packets build skipped:", e)
     print("Built:", os.listdir(OUT))

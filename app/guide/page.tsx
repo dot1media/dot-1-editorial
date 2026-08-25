@@ -179,8 +179,18 @@ export default function GuidePage() {
           <P>Print these or hand them to a new person. They stay in sync with this guide.</P>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <a className="btn primary sm" href="/docs/Dot1Media-Employee-Handbook.pdf" target="_blank" rel="noreferrer">Employee Handbook (full)</a>
-            <a className="btn primary sm" href="/docs/Dot1News-Newsroom-QuickStart.pdf" target="_blank" rel="noreferrer">Newsroom Quick Start (2 pages)</a>
-            <a className="btn primary sm" href="/docs/Dot1News-Broadcast-Guide.pdf" target="_blank" rel="noreferrer">Live Broadcast Guide (ATEM + OBS)</a>
+            <a className="btn primary sm" href="/docs/Dot1Media-DayOne-Checklist.pdf" target="_blank" rel="noreferrer">Day One Checklist</a>
+          </div>
+          <div style={{ marginTop: 10, marginBottom: 6, fontSize: 14 }}>Role packets:</div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <a className="btn ghost sm" href="/docs/Dot1Media-Packet-Studio.pdf" target="_blank" rel="noreferrer">Studio &amp; Photography</a>
+            <a className="btn ghost sm" href="/docs/Dot1Media-Packet-Reporter.pdf" target="_blank" rel="noreferrer">Reporter</a>
+            <a className="btn ghost sm" href="/docs/Dot1Media-Packet-Producer.pdf" target="_blank" rel="noreferrer">Producer</a>
+          </div>
+          <div style={{ marginTop: 10, marginBottom: 6, fontSize: 14 }}>Newsroom &amp; broadcast quick guides:</div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <a className="btn ghost sm" href="/docs/Dot1News-Newsroom-QuickStart.pdf" target="_blank" rel="noreferrer">Newsroom Quick Start</a>
+            <a className="btn ghost sm" href="/docs/Dot1News-Broadcast-Guide.pdf" target="_blank" rel="noreferrer">Live Broadcast Guide</a>
           </div>
         </Section>
 
