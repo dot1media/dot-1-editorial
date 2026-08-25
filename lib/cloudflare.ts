@@ -89,3 +89,43 @@ export async function getLiveState() {
   const rows = await newsSql`SELECT is_live, title, hls_url, player_url, started_at FROM live_state WHERE id = 'current' LIMIT 1`;
   return rows[0] || null;
 }
+
+// ---- Recorded episodes: resumable (tus) upload of a finished DaVinci export ----
+
+// Creates a one-time resumable upload URL. The browser uploads the big file straight to Cloudflare
+// (not through our server) via tus, so large episode exports work. Returns the video uid + URL.
+export async function cfCreateTusUpload(name: string, sizeBytes: number): Promise<{ uid: string; uploadURL: string }> {
+  const { acct, token } = cfEnv();
+  const meta = `name ${Buffer.from(name).toString("base64")},requiresignedurls ${Buffer.from("false").toString("base64")}`;
+  const res = await fetch(`${CF_API}/accounts/${acct}/stream?direct_user=true`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Tus-Resumable": "1.0.0",
+      "Upload-Length": String(sizeBytes),
+      "Upload-Metadata": meta,
+    },
+  });
+  if (res.status !== 201) {
+    const t = await res.text().catch(() => "");
+    throw new Error(`Cloudflare upload create ${res.status}: ${t.slice(0, 160)}`);
+  }
+  const uploadURL = res.headers.get("Location") || "";
+  const uid = res.headers.get("stream-media-id") || "";
+  if (!uploadURL || !uid) throw new Error("Cloudflare did not return an upload URL.");
+  return { uid, uploadURL };
+}
+
+export function thumbnailUrl(uid: string, opts?: { time?: string; height?: number }) {
+  const { code } = cfEnv();
+  const t = opts?.time || "2s"; const h = opts?.height || 720;
+  return `https://customer-${code}.cloudflarestream.com/${uid}/thumbnails/thumbnail.jpg?time=${t}&height=${h}`;
+}
+
+// Best-effort details after upload (duration, ready state). Constructed URLs don't need this.
+export async function cfGetVideo(uid: string): Promise<{ state: string; durationSeconds: number } | null> {
+  try {
+    const r = await cf(`/stream/${uid}`);
+    return { state: r?.status?.state || "", durationSeconds: Math.round(r?.duration || 0) };
+  } catch { return null; }
+}

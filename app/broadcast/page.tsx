@@ -6,7 +6,7 @@ import Link from "next/link";
 import Shell from "@/components/Shell";
 import { api, useMe } from "@/lib/client";
 import { fmtClock, EPISODE_STATUS, WEEKDAYS } from "@/lib/broadcast";
-import { Plus, Radio, Wrench, Calendar } from "lucide-react";
+import { Plus, Radio, Wrench, Calendar, Film } from "lucide-react";
 
 export default function BroadcastHome() {
   const { can } = useMe();
@@ -34,6 +34,7 @@ export default function BroadcastHome() {
     <Shell title="Broadcast" subtitle="Plan the show, write the script, remember what aired."
       actions={
         <div style={{ display: "flex", gap: 8 }}>
+          <Link href="/broadcast/publish" className="btn ghost"><Film size={15} /> Publish episode</Link>
           <Link href="/broadcast/live" className="btn ghost"><Radio size={15} /> Go live</Link>
           <Link href="/broadcast/graphics" className="btn ghost"><Wrench size={15} /> On-air graphics</Link>
           <Link href="/broadcast/tools" className="btn ghost"><Wrench size={15} /> Live tools</Link>
