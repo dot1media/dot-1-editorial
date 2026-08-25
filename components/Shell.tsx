@@ -7,7 +7,7 @@ import { useMe, api } from "@/lib/client";
 import type { Capability } from "@/lib/permissions";
 import {
   LayoutDashboard, FileText, Inbox, ScrollText, ShieldCheck,
-  Users, ClipboardList, Radio, Menu, LogOut, Image as ImageIcon, Sparkles, Newspaper, BookOpen, Bell,
+  Users, ClipboardList, Radio, Menu, LogOut, Image as ImageIcon, Sparkles, Newspaper, BookOpen, Bell, BarChart3,
 } from "lucide-react";
 
 interface NavItem {
@@ -26,6 +26,7 @@ const NAV: NavItem[] = [
   { href: "/review", label: "Review Queue", icon: ClipboardList, cap: "review.complete" },
   { href: "/media", label: "Media Library", icon: ImageIcon, cap: "media.upload" },
   { href: "/published", label: "Published", icon: Newspaper, cap: "story.view" },
+  { href: "/analytics", label: "Readership", icon: BarChart3, cap: "story.view" },
   { href: "/broadcast", label: "Broadcast", icon: Radio, cap: "broadcast.view", group: "Production" },
   { href: "/notify", label: "Send Alert", icon: Bell, cap: "broadcast.view" },
   { href: "/standards", label: "Standards", icon: ScrollText, cap: "standards.edit", group: "Newsroom" },
