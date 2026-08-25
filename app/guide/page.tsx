@@ -178,7 +178,7 @@ export default function GuidePage() {
         <Section title="Printable handouts">
           <P>Print these or hand them to a new person. They stay in sync with this guide.</P>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <a className="btn primary sm" href="/docs/Dot1News-Operations-Manual.pdf" target="_blank" rel="noreferrer">Operations Manual (full handbook)</a>
+            <a className="btn primary sm" href="/docs/Dot1Media-Employee-Handbook.pdf" target="_blank" rel="noreferrer">Employee Handbook (full)</a>
             <a className="btn primary sm" href="/docs/Dot1News-Newsroom-QuickStart.pdf" target="_blank" rel="noreferrer">Newsroom Quick Start (2 pages)</a>
             <a className="btn primary sm" href="/docs/Dot1News-Broadcast-Guide.pdf" target="_blank" rel="noreferrer">Live Broadcast Guide (ATEM + OBS)</a>
           </div>

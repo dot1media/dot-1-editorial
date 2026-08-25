@@ -18,7 +18,7 @@ HAIR = HexColor("#e0d8c8"); BLUE = HexColor("#3a6ea5"); GREEN = HexColor("#2f8f6
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "public", "docs")
 os.makedirs(OUT, exist_ok=True)
-PATH = os.path.join(OUT, "Dot1News-Operations-Manual.pdf")
+PATH = os.path.join(OUT, "Dot1Media-Employee-Handbook.pdf")
 
 # ---------------- styles ----------------
 def S():
@@ -46,7 +46,7 @@ st = S()
 class Manual(BaseDocTemplate):
     def __init__(self, path, **kw):
         super().__init__(path, pagesize=letter, leftMargin=64, rightMargin=64, topMargin=74, bottomMargin=58, **kw)
-        self.title = "Dot 1 News — Operations Manual"
+        self.title = "Dot One Media — Employee Handbook"
         cover = PageTemplate(id="cover", frames=[Frame(0, 0, letter[0], letter[1], id="c")], onPage=self._cover_bg)
         normal = PageTemplate(id="normal", frames=[Frame(self.leftMargin, self.bottomMargin,
                     self.width, self.height, id="n")], onPage=self._chrome)
@@ -62,9 +62,9 @@ class Manual(BaseDocTemplate):
         c.setFillColor(CRIMSON); c.rect(0, 232, letter[0], 5, fill=1, stroke=0)
 
     def _chrome(self, c, d):
-        c.setFillColor(INK); c.setFont("Times-Bold", 9); c.drawString(64, letter[1] - 46, "DOT 1 NEWS")
+        c.setFillColor(INK); c.setFont("Times-Bold", 9); c.drawString(64, letter[1] - 46, "DOT ONE MEDIA")
         c.setFillColor(MUTED); c.setFont("Courier", 7)
-        c.drawRightString(letter[0] - 64, letter[1] - 46, "OPERATIONS MANUAL")
+        c.drawRightString(letter[0] - 64, letter[1] - 46, "EMPLOYEE HANDBOOK")
         c.setStrokeColor(HAIR); c.setLineWidth(0.6); c.line(64, letter[1] - 54, letter[0] - 64, letter[1] - 54)
         c.setStrokeColor(HAIR); c.line(64, 48, letter[0] - 64, 48)
         c.setFillColor(MUTED); c.setFont("Courier", 7)
@@ -104,341 +104,338 @@ def box(flowables, bg=PAPER, stroke=HAIR):
 story = []
 
 # ---------------- cover ----------------
-story += [Spacer(1, 250),
-          Paragraph("DOT 1 NEWS", st["cover_t"]),
+story += [Spacer(1, 240),
+          Paragraph("DOT ONE MEDIA", st["cover_t"]),
           Spacer(1, 10),
-          Paragraph("Operations Manual", ParagraphStyle("ct2", parent=st["cover_t"], fontSize=22, textColor=GOLD)),
+          Paragraph("Employee Handbook", ParagraphStyle("ct2", parent=st["cover_t"], fontSize=22, textColor=GOLD)),
           Spacer(1, 18),
-          Paragraph("Running the newsroom, the app, the websites,<br/>and the broadcast — a staff handbook", st["cover_s"]),
+          Paragraph("How we run the studio, the client portal, the<br/>asset system, the websites, and the newsroom", st["cover_s"]),
           Spacer(1, 120),
-          Paragraph("JUST TRUTH · NO BIAS", st["cover_m"]),
-          Paragraph("A Declared Standpoint", st["cover_m"]),
+          Paragraph("A DECLARED STANDPOINT", st["cover_m"]),
+          Paragraph("Veteran-owned · Wasilla, Alaska", st["cover_m"]),
           Spacer(1, 8),
-          Paragraph("Confidential · for Dot 1 News staff", st["cover_m"]),
+          Paragraph("Confidential · for Dot One Media staff", st["cover_m"]),
           NextPageTemplate("normal"), PageBreak()]
 
 # ---------------- table of contents ----------------
 toc = TableOfContents()
 toc.levelStyles = [st["toc1"], st["toc2"]]
-story += [KICK("CONTENTS"), Paragraph("What's in this manual", ParagraphStyle("tochead", parent=st["h1"])), SP(6), toc, PageBreak()]
+story += [KICK("CONTENTS"), Paragraph("What's in this handbook", ParagraphStyle("tochead", parent=st["h1"])), SP(6), toc, PageBreak()]
 
-# ================= 1. WELCOME =================
-story += [KICK("SECTION 1"), H1("Welcome, and how to use this manual")]
-story += [P("This manual is the single reference for running Dot 1 News. It covers every tool we use — the newsroom portal, the reader app, the websites, and the broadcast studio — plus the procedures that tie them together and the permissions that govern who does what. If you are new, read it front to back once; afterward, use the contents and the runbooks in Section 8 as a day-to-day reference.")]
-story += [P("Our standard is in the name: <b>Just Truth, No Bias</b>, and our posture is <b>A Declared Standpoint</b> — we are open about who we are and we hold every story to a documented, dual-checked process. The tools in this manual exist to make that standard repeatable, not optional.")]
-story += [H3("How the manual is organized")]
-story += [B("Sections 2–5 cover the newsroom and what readers see."),
-          B("Section 6 is the full broadcast process and equipment."),
-          B("Section 7 covers reaching the audience: notifications, analytics, and tips."),
-          B("Section 8 is step-by-step runbooks you'll use repeatedly."),
-          B("Sections 9–11 are troubleshooting, a maintainer reference, and a glossary.")]
-story += [SP(4), box([NOTE("Access is by role. If a page or button described here isn't visible to you, it's gated to a role you don't have. That's expected — ask an Owner if you need it.")])]
+# ===== 1. WELCOME =====
+story += [KICK("SECTION 1"), H1("Welcome to Dot One Media")]
+story += [P("This handbook is how we run everything. It covers every system we use — the company website, the client portal, the asset system, and the entire Dot 1 News newsroom and broadcast — plus the day-to-day procedures and the permissions that decide who does what. If you're new, read it once front to back, then use the contents and the runbooks in Section 14 as your daily reference. Several systems also have their own in-app guides; this handbook is the master that ties them together.")]
+story += [P("Our posture is <b>A Declared Standpoint</b>: we're open about who we are and we do the work to a documented standard. For the newsroom that standard is <b>Just Truth, No Bias</b>. The tools in this handbook exist to make that standard repeatable.")]
+story += [box([NOTE("If a page or button described here isn't visible to you, it's gated to a role you don't have. That's expected — ask an Owner or the studio.")])]
 
-# ================= 2. ECOSYSTEM =================
-story += [PageBreak(), KICK("SECTION 2"), H1("The Dot 1 News ecosystem at a glance")]
-story += [P("Dot 1 News is one connected system with several front doors. Everything the newsroom does happens in the <b>editorial portal</b>; from there, finished work flows out to the <b>reader app</b> and the <b>news website</b>, and the <b>broadcast studio</b> feeds live and recorded video into the same places.")]
-story += [H3("The systems and their addresses")]
+# ===== 2. THE COMPANY =====
+story += [PageBreak(), KICK("SECTION 2"), H1("The company & its work")]
+story += [P("Dot One Media (DOT ONE LLC, established 2021) is a veteran-owned, faith-driven media and production studio based in the Wasilla–Palmer area of Alaska. It was founded by Dennis Matthews Jr.; Brittany Matthews serves as Creative Director and Photojournalist.")]
+story += [H3("What we do")]
+story += [B("<b>Photography</b> — led by the Creative Director; our current growth area."),
+          B("<b>Video &amp; film</b> — from short pieces to documentary and commercial work."),
+          B("<b>Music</b> — production and related services."),
+          B("<b>Government &amp; commercial</b> — we are SAM.gov registered (UEI R3MTPRVZ9L42, CAGE 22YZ5); FAA Part 107 remote-pilot certification is in progress."),
+          B("<b>Dot 1 News</b> — our independent news outlet: a newsroom, a reader app and website, and a broadcast studio.")]
+story += [P("Client work (photo, video, music, government) is run through the <b>client portal</b>. The newsroom and broadcast run through the <b>Dot 1 News</b> systems. The <b>asset system</b> tracks the gear all of it depends on.")]
+
+# ===== 3. ECOSYSTEM =====
+story += [PageBreak(), KICK("SECTION 3"), H1("The whole ecosystem at a glance")]
+story += [P("Everything we run has an address. Client-facing systems are public; staff systems require a login.")]
 sysrows = [
-    [Paragraph("System", st["tblh"]), Paragraph("Address", st["tblh"]), Paragraph("What it is / who uses it", st["tblh"])],
-    [Paragraph("Editorial portal", st["tbl"]), Paragraph("editorial.dot1.media", st["tbl"]), Paragraph("The newsroom. Staff only. Write, verify, score, publish, run broadcast and live.", st["tbl"])],
-    [Paragraph("News website", st["tbl"]), Paragraph("news.dot1.media", st["tbl"]), Paragraph("Public reader site: stories, live page, standpoint pages, news-tip form.", st["tbl"])],
+    [Paragraph("System", st["tblh"]), Paragraph("Address", st["tblh"]), Paragraph("Who uses it / what it's for", st["tblh"])],
+    [Paragraph("Company website", st["tbl"]), Paragraph("dot1.media", st["tbl"]), Paragraph("Public. Marketing, services, government capabilities, agreements, news-tip button.", st["tbl"])],
+    [Paragraph("Client portal", st["tbl"]), Paragraph("portal.dot1.media", st["tbl"]), Paragraph("Clients + studio. Booking, payments, the session status timeline, delivery.", st["tbl"])],
+    [Paragraph("Asset system", st["tbl"]), Paragraph("assets.dot1.media", st["tbl"]), Paragraph("Studio. Equipment/software/service inventory, lifecycle, gear packages, check-out.", st["tbl"])],
+    [Paragraph("Editorial portal", st["tbl"]), Paragraph("editorial.dot1.media", st["tbl"]), Paragraph("Newsroom staff. Write, verify, score, publish; run broadcast and live.", st["tbl"])],
+    [Paragraph("News website", st["tbl"]), Paragraph("news.dot1.media", st["tbl"]), Paragraph("Public. Stories, live page, standpoint pages, news-tip form.", st["tbl"])],
     [Paragraph("Reader app", st["tbl"]), Paragraph("Dot 1 News (App Store)", st["tbl"]), Paragraph("Public iOS/Android app. Reading, live banner, videos, notifications.", st["tbl"])],
-    [Paragraph("Company site", st["tbl"]), Paragraph("dot1.media", st["tbl"]), Paragraph("Dot One Media marketing site; also carries a news-tip button.", st["tbl"])],
     [Paragraph("Broadcast overlays", st["tbl"]), Paragraph("editorial.dot1.media/broadcast/…", st["tbl"]), Paragraph("The on-air graphics OBS loads (16:9 and 9:16).", st["tbl"])],
 ]
-t = Table(sysrows, colWidths=[95, 150, 235])
+t = Table(sysrows, colWidths=[92, 140, 248])
 t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), DEEP), ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#ffffff"), PAPER]),
     ("GRID", (0, 0), (-1, -1), 0.5, HAIR), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ("LEFTPADDING", (0, 0), (-1, -1), 7), ("RIGHTPADDING", (0, 0), (-1, -1), 7),
     ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
-story += [t, SP(8)]
-story += [H3("How work flows through it")]
-story += [P("A story starts in the editorial portal (written by a reporter, generated by the AI Desk, or promoted from a public tip). It climbs a verification ladder, gets a dual rating, and an editor approves it. On publish, it's written to the news database that both the app and the news website read, so it appears to the public in both places at once. Live and recorded video follow a parallel path through the broadcast studio into the same app and site.")]
+story += [t]
 
-# ================= 3. ACCOUNTS & PERMISSIONS =================
-story += [PageBreak(), KICK("SECTION 3"), H1("Accounts, roles & permissions")]
-story += [P("Every staff member signs in to the editorial portal with their own account. What you can see and do is decided by your <b>role</b>. Roles are made of individual <b>capabilities</b>, and an Owner can grant any single capability to any person — so access can be tailored without inventing new roles.")]
-story += [H2("The roles")]
-story += [B("<b>Reporter</b> — creates and works stories: sources, evidence, the reporting log, verification, and ratings. Cannot publish.")]
-story += [B("<b>Editor</b> — everything a Reporter does, plus assigning and moving stories, approving, publishing, corrections, standards, and the audit log.")]
-story += [B("<b>Producer</b> — runs the broadcast: on-air graphics, going live, publishing recorded episodes, uploading media.")]
-story += [B("<b>Viewer</b> — reads the newsroom and can watch the broadcast area without changing anything.")]
-story += [B("<b>Owner</b> — can do everything, and grants access to others. Cannot be locked out.")]
-story += [SP(4), box([NOTE("Roles are a starting point. Because access is per-capability, an Owner can, for example, give one trusted reporter the ability to publish without making them a full Editor.")])]
+# ===== 4. SIGNING IN & ACCESS =====
+story += [PageBreak(), KICK("SECTION 4"), H1("Signing in & access")]
+story += [P("There are three separate sign-in worlds, on purpose:")]
+story += [H3("Studio staff — one login for portal + assets")]
+story += [P("Studio staff sign in with a single <b>@dot1.media</b> account at <b>portal.dot1.media</b>. That one sign-in also carries you into the asset system at assets.dot1.media automatically — the portal is the identity hub, and the two share a sign-in. Signing out of one signs you out of both. Studio admin accounts are managed in the portal under <b>Admins</b>; if no admin exists yet, a first-run setup appears, and a studio master password can reset a locked-out admin.")]
+story += [H3("Newsroom — its own login")]
+story += [P("The editorial portal (and the reader app's admin) have their <b>own</b> login, kept separate from the studio sign-in by design — the news app adds two-factor for hardening. Newsroom access is governed by the roles in Section 10.")]
+story += [H3("Clients — their own accounts")]
+story += [P("Clients create their own portal account when they book. That's entirely separate from staff logins. Clients only ever see their own sessions.")]
+story += [box([NOTE("Treat every login as a credential. Don't share it; actions are recorded. Never enter a password or payment detail into an automated tool — a person does those directly.")])]
 
-story += [H2("What each role can do")]
-def chk(has): return Paragraph("●", ParagraphStyle("k", parent=st["tblc"], textColor=(GREEN if has else HexColor("#d8d0c0")))) 
+# ===== 5. COMPANY WEBSITE =====
+story += [PageBreak(), KICK("SECTION 5"), H1("The company website (dot1.media)")]
+story += [P("dot1.media is our public front door — a marketing site, not something staff log into. Know what's on it so you can point people to the right place.")]
+story += [B("<b>Services</b> — photography, video, music, and government &amp; commercial work."),
+          B("<b>Methodology</b> — how we approach the work, including our editorial methodology."),
+          B("<b>Government &amp; commercial</b> — our SAM.gov registration (UEI R3MTPRVZ9L42, CAGE 22YZ5) and certifications."),
+          B("<b>Dot 1 News</b> — a section introducing the news outlet."),
+          B("<b>Agreements</b> — the Client Services Agreement, Release &amp; Waiver, and Minor Release PDFs are hosted here."),
+          B("<b>Submit a news tip</b> — a button that feeds the newsroom's tips queue."),
+          B("Footer links to both Instagram handles (@dot1media, @dot1photo) and the Dot 1 News app.")]
+story += [NOTE("Booking a client session is moving into the client portal; where the site still points to older scheduling, prefer the portal. Photography is shown as a single collage grid by the Creative Director's choice.")]
+
+# ===== 6. CLIENT PORTAL — STUDIO =====
+story += [PageBreak(), KICK("SECTION 6"), H1("The client portal — studio side")]
+story += [P("portal.dot1.media is where the studio runs every client job. It's a live web app (booking, payments, receipts, delivery, and analytics) and it has its own in-app <b>Studio Admin Guide</b> for detail. This section is the overview.")]
+
+story += [H2("6.1 The session status timeline")]
+story += [P("Every job is a <b>session</b> that moves through a status timeline the client can watch:")]
+story += [N(1, "Scheduling the session"), N(2, "Session / shoot booked"), N(3, "Day-of"),
+          N(4, "Post-shoot"), N(5, "Editing"), N(6, "Pre-delivery (client can suggest edits)"), N(7, "Final delivery")]
+story += [P("Advance a session as it progresses. When you advance a stage you can choose whether to email the client about it (on by default). Consultations use a shorter three-stage track.")]
+
+story += [H2("6.2 Getting a job into the system")]
+story += [B("<b>Client self-booking</b> — the client picks a service, date, add-ons, signs the agreements, pays the retainer, and creates their account, all in the booking flow."),
+          B("<b>Internal booking</b> — a studio-only quick booking (used for high-volume mini sessions). It emails the client the agreement and details and, if set, a payment request; no portal account is created and it's hidden from the client portal."),
+          B("<b>Invoice</b> — send a client a bill that doubles as a booking (see 6.4)."),
+          B("<b>Import</b> — past sessions can be imported from an Acuity CSV export under Business Settings.")]
+
+story += [H2("6.3 Services, payments & receipts")]
+story += [B("<b>Services &amp; add-ons</b> — session types are organized by group (Photography, Video, Music, Government). Each can carry an example image and an attached gear package (Section 9)."),
+          B("<b>Payments</b> run through Square. Video takes a 50% retainer; photography is paid in full or half; music and government are quote-based. Deposits and balances are tracked per session."),
+          B("<b>Receipts</b> are generated as branded PDFs and emailed; partial payments show the total and balance remaining."),
+          B("The studio home surfaces a <b>Pending payment</b> panel of everything owed. If a payment doesn't show, the Check / Sync buttons re-query Square.")]
+
+story += [H2("6.4 Invoices")]
+story += [P("From Sessions, create an invoice: enter the client and details, pick the service and add-ons (with quantities) or custom line items, preview it, and send. The client receives a branded invoice PDF and a payment link for the 50% retainer. Paying it books the session, and the client then signs the agreements and sets a password before reaching their dashboard. Sent invoices are saved in an archive where you can re-download the PDF, resend, copy the payment link, or create a link if one is missing.")]
+
+story += [H2("6.5 Delivering the work")]
+story += [B("<b>Photos</b> — delivered via a gallery link (the studio uses CloudSpot); paste the gallery URL into the session's delivery field."),
+          B("<b>Video</b> — paste the final video link (typically a Frame.io URL)."),
+          B("<b>Music / government</b> — deliverables links with matching wording."),
+          B("Saving a delivery link never emails silently — a confirmation asks you to verify the link points to the final files before the client is emailed."),
+          B("When a session reaches final delivery, the client is sent a warm review request with the Google review link; there's also a manual Request a review button.")]
+
+story += [H2("6.6 Messaging, accounts & analytics")]
+story += [B("<b>Messages</b> — a two-way thread with the client, images supported both ways, with a notification bell for new activity."),
+          B("<b>Client Accounts</b> — look a client up by email to reset their password or change their login email."),
+          B("<b>Analytics</b> (Business Settings) — revenue by service line, bookings by session type, and by month, plus a colored mini-calendar of the schedule.")]
+story += [NOTE("Photography routes to the Creative Director; video, music, and government route to the founder. Changing a session's type re-routes it accordingly.")]
+
+# ===== 7. CLIENT PORTAL — CLIENT =====
+story += [PageBreak(), KICK("SECTION 7"), H1("The client portal — client side")]
+story += [P("This is what your clients experience, so you can guide them. It has its own in-app <b>Client Guide</b> too.")]
+story += [B("<b>Book</b> — choose a service group and type, a date and time, and any add-ons; sign the Client Services Agreement and release waiver; pay the retainer; and create an account, all in one flow."),
+          B("<b>Track</b> — sign back in any time to see the status timeline of their session, and receive status emails as it advances."),
+          B("<b>Pay</b> — the retainer and any balance through Square, with receipts emailed."),
+          B("<b>Message</b> — talk to the studio directly, with images."),
+          B("<b>Receive</b> — the finished work through the gallery or video link the studio sends."),
+          B("<b>Review</b> — a prompt to leave a Google review after final delivery."),
+          B("<b>Comfort</b> — appearance themes (including a Midnight dark mode), and Terms of Service and Privacy pages.")]
+story += [NOTE("Clients only see their own sessions. Internal and imported sessions are hidden from the client side.")]
+
+# ===== 8. ASSET SYSTEM =====
+story += [PageBreak(), KICK("SECTION 8"), H1("The asset management system (assets.dot1.media)")]
+story += [P("The asset system tracks all of Dot One Media's equipment, software licenses, and web services, and tells us when things need replacing or renewing. Sign in with your studio @dot1.media login (the same one as the portal). It's built to hold more than one business over time; Dot One Media is the first, chosen from the business switcher in the top bar.")]
+story += [H3("The tabs")]
+story += [B("<b>Dashboard</b> — total inventory value, counts, category and condition breakdowns, and a lifecycle attention list."),
+          B("<b>Inventory</b> — a searchable, filterable table of every item (by equipment / software / service, category, status, or text). Add, edit, or delete items here; an item shows how many are currently checked out."),
+          B("<b>Lifecycle</b> — items grouped by urgency: overdue, due soon, on track, or needs dates. Equipment replacement is figured from its purchase date plus expected lifespan; software and services from their renewal date. These fields start empty — fill them in over time and the lifecycle view and dashboard alerts populate."),
+          B("<b>Packages</b> — reusable gear kits built from inventory (Section 9)."),
+          B("<b>Checked Out</b> — what gear is out on a shoot, when it's due back, and overdue flags (Section 9).")]
+story += [NOTE("The system was seeded with the studio's full inventory (about 147 items). Keep it current: add new gear when it arrives, and fill in purchase and renewal dates so the lifecycle alerts are meaningful.")]
+
+# ===== 9. GEAR PACKAGES =====
+story += [PageBreak(), KICK("SECTION 9"), H1("Gear packages (assets + portal, together)")]
+story += [P("A <b>package</b> is a named kit of gear — the equipment a particular kind of shoot needs. Packages tie the asset system and the client portal together so you can plan and track gear per session type.")]
+story += [H3("How the loop works")]
+story += [N(1, "<b>Build the package</b> in the asset system's Packages tab: name it and pick items from inventory with quantities."),
+          N(2, "<b>Attach it to a session type</b> in the portal (Services &amp; Add-ons) so everyone knows what gear that kind of job needs."),
+          N(3, "<b>Check it out</b> in the asset system's Checked Out tab when you take the gear for a shoot — set a due-back date."),
+          N(4, "<b>Check it in</b> when the gear returns. Inventory shows what's currently out, and overdue kits are flagged.")]
+story += [NOTE("This gives you a live picture of where gear is, prevents double-booking equipment across shoots, and makes sure nothing is forgotten on a job.")]
+
+# ===== 10. NEWSROOM =====
+story += [PageBreak(), KICK("SECTION 10"), H1("The newsroom (editorial portal)")]
+story += [P("editorial.dot1.media is where all Dot 1 News journalism happens. Newsroom access is by <b>role</b>, and roles are made of individual capabilities an Owner can grant one at a time.")]
+story += [H2("10.1 Roles")]
+story += [B("<b>Reporter</b> — creates and works stories (sources, evidence, reporting log, verification, ratings). Cannot publish."),
+          B("<b>Editor</b> — a Reporter plus assigning/moving stories, approving, publishing, corrections, standards, and the audit log."),
+          B("<b>Producer</b> — runs the broadcast: graphics, going live, publishing episodes, uploading media."),
+          B("<b>Viewer</b> — reads the newsroom and watches broadcast without changing anything."),
+          B("<b>Owner</b> — everything, and grants access. Cannot be locked out.")]
+story += [H2("10.2 What each role can do")]
+def chk(has): return Paragraph("●", ParagraphStyle("k", parent=st["tblc"], textColor=(GREEN if has else HexColor("#d8d0c0"))))
 cap_rows = [
-    ("View the newsroom", 1,1,1,1,1),
-    ("Create / write stories", 1,1,0,0,1),
-    ("Manage sources & evidence", 1,1,0,0,1),
-    ("Add to the reporting log", 1,1,1,0,1),
-    ("Work verification", 1,1,0,0,1),
-    ("Add a second rating (score)", 1,1,0,0,1),
-    ("Assign / move / delete stories", 0,1,0,0,1),
-    ("Approve for publication", 0,1,0,0,1),
-    ("Publish to the app & site", 0,1,0,0,1),
-    ("Manage corrections", 0,1,0,0,1),
-    ("Edit editorial standards", 0,1,0,0,1),
-    ("View the audit log", 0,1,0,0,1),
-    ("Upload media", 1,1,1,0,1),
-    ("Publish recorded episodes", 0,1,1,0,1),
-    ("Run on-air graphics", 0,0,1,0,1),
-    ("Go live", 0,0,1,0,1),
-    ("Send push notifications", 0,1,1,0,1),
-    ("Manage staff accounts", 0,0,0,0,1),
+    ("View the newsroom", 1,1,1,1,1), ("Create / write stories", 1,1,0,0,1),
+    ("Manage sources & evidence", 1,1,0,0,1), ("Add to the reporting log", 1,1,1,0,1),
+    ("Work verification", 1,1,0,0,1), ("Add a second rating (score)", 1,1,0,0,1),
+    ("Assign / move / delete stories", 0,1,0,0,1), ("Approve for publication", 0,1,0,0,1),
+    ("Publish to the app & site", 0,1,0,0,1), ("Manage corrections", 0,1,0,0,1),
+    ("Edit editorial standards", 0,1,0,0,1), ("View the audit log", 0,1,0,0,1),
+    ("Upload media", 1,1,1,0,1), ("Publish recorded episodes", 0,1,1,0,1),
+    ("Run on-air graphics", 0,0,1,0,1), ("Go live", 0,0,1,0,1),
+    ("Send push notifications", 0,1,1,0,1), ("Manage staff accounts", 0,0,0,0,1),
 ]
 head = [Paragraph("Capability", st["tblh"])] + [Paragraph(r, st["tblh"]) for r in ["Rep.", "Ed.", "Prod.", "View.", "Own."]]
-data = [head]
-for row in cap_rows:
-    data.append([Paragraph(row[0], st["tbl"])] + [chk(row[i]) for i in range(1, 6)])
+data = [head] + [[Paragraph(r[0], st["tbl"])] + [chk(r[i]) for i in range(1, 6)] for r in cap_rows]
 t = Table(data, colWidths=[228, 50, 50, 50, 50, 50], repeatRows=1)
 t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), DEEP), ("ROWBACKGROUNDS", (0, 1), (-1, -1), [HexColor("#ffffff"), PAPER]),
-    ("GRID", (0, 0), (-1, -1), 0.5, HAIR), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    ("ALIGN", (1, 0), (-1, -1), "CENTER"),
+    ("GRID", (0, 0), (-1, -1), 0.5, HAIR), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("ALIGN", (1, 0), (-1, -1), "CENTER"),
     ("LEFTPADDING", (0, 0), (-1, -1), 6), ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
-story += [t, SP(8)]
-story += [H3("Signing in & getting an account")]
-story += [B("An Owner creates your account from Accounts and assigns your role. You sign in at editorial.dot1.media."),
-          B("The reader app is public and reader-only — staff work never happens in the app. If the app ever asks you to sign in as an admin, that's the wrong place; use the portal."),
-          B("Treat your login as a credential. Don't share it; each person's actions are recorded in the audit log under their own name.")]
+story += [t]
 
-# ================= 4. NEWSROOM =================
-story += [PageBreak(), KICK("SECTION 4"), H1("The newsroom (editorial portal)")]
-story += [P("The editorial portal is where all journalism happens. This section walks the full life of a story from origin to publication, plus the standards and oversight tools around it.")]
+story += [H2("10.3 The life of a story")]
+story += [B("<b>Origin</b> — a reporter writes it, the AI Desk drafts it from the wire, or it's promoted from a public tip."),
+          B("<b>Reporting</b> — build the record: sources, evidence, a timestamped reporting log, and verification."),
+          B("<b>The review ladder</b> — status is computed automatically: Not Verified → Partially Verified → Verified → Editor Approved → Ready to Publish. The system enforces the standard; a story can't skip verification."),
+          B("<b>Scoring</b> — every story is dual-rated (a machine rating plus an independent human second rating, reconciled). Dual-rated stories carry a verified mark to readers."),
+          B("<b>Publish</b> — writes the story to the app and news site at once; AI stories that are Ready and fully dual-rated can auto-publish, everything else is deliberate.")]
+story += [H2("10.4 Oversight")]
+story += [B("<b>Published archive</b> — everything live (articles, photos, videos); edit or remove. Deletes take effect immediately."),
+          B("<b>Standards &amp; corrections</b> — the public editorial standards and the correction ledger."),
+          B("<b>Audit log</b> — who did what, our internal accountability trail.")]
 
-story += [H2("4.1 Where stories come from")]
-story += [B("<b>A reporter</b> creates one directly."),
-          B("<b>The AI Desk</b> pulls the wire and drafts a story with an initial machine rating, which lands in the queue for a human to verify."),
-          B("<b>A public tip</b> (from the app or either website) arrives in the Tips queue and can be promoted into a story.")]
+# ===== 11. READERS =====
+story += [PageBreak(), KICK("SECTION 11"), H1("What readers see (app & news site)")]
+story += [B("<b>The reader app (Dot 1 News)</b> — public and reader-only: latest stories, a red LIVE banner when we're broadcasting, a videos area for episodes, and push notifications. No staff functions live in the app."),
+          B("<b>news.dot1.media</b> — the reader website with the same stories, the standpoint pages (standards, corrections, ownership, advertising, contact), a /live page, and a Send a news tip page."),
+          B("<b>Tips</b> from the app and both websites all land in the newsroom's Tips queue; some are anonymous — protect confidentiality.")]
 
-story += [H2("4.2 Creating & reporting a story")]
-story += [P("Open a story and work these tools, which together build the record behind the reporting:")]
-story += [B("<b>Sources</b> — who and what the story rests on. Add each source and what it supports."),
-          B("<b>Evidence</b> — documents, links, files, and screenshots that back specific claims."),
-          B("<b>Reporting log</b> — a running, timestamped record of what you did (calls made, records pulled). This is how the newsroom shows its work."),
-          B("<b>Verification</b> — the checklist and per-claim checks that move the story up the ladder."),
-          B("Write the story body and, for broadcast, the script in the same place.")]
-
-story += [H2("4.3 The AI Desk")]
-story += [P("The AI Desk drafts stories from the wire and gives each an initial rating. These are <b>starting points, not published work</b>: every AI draft still has to be verified and, before it can auto-publish, must reach Ready to Publish and carry a complete dual rating (a human second rating). If the AI Desk reports it isn't configured, a maintainer needs to set its key — that's not something the newsroom fixes day to day.")]
-
-story += [H2("4.4 Triaging tips")]
-story += [P("Tips from the public arrive in the Tips queue (each tagged with where it came from — the app, the news site, or the company site). Review them, and when one is worth pursuing, promote it into a story where it enters the normal workflow. Some tips are sent anonymously; respect that.")]
-
-story += [H2("4.5 The review ladder")]
-story += [P("A story's status is <b>computed automatically</b> from the work done on it — you don't set it by hand. The rungs are:")]
-story += [N(1, "<b>Not Verified</b> — nothing checked yet."),
-          N(2, "<b>Partially Verified</b> — some claims/checklist done."),
-          N(3, "<b>Verified</b> — claims and checklist satisfied."),
-          N(4, "<b>Editor Approved</b> — an editor has signed off."),
-          N(5, "<b>Ready to Publish</b> — cleared to go to the app and site.")]
-story += [P("The ladder means the standard is enforced by the system: a story can't quietly skip verification.")]
-
-story += [H2("4.6 Scoring: the dual rating")]
-story += [P("Dot 1 News rates its reporting with the D1-4LS framework across a set of indicators. What matters operationally: a story is <b>dual-rated</b> — a machine rating plus an independent <b>human second rating</b> — and the two are reconciled. A story that has been dual-rated carries a verified mark to readers. Add your second rating on the story's Score tab; don't rate your own draft as the second rater where the newsroom expects independence.")]
-
-story += [H2("4.7 Approval & publishing")]
-story += [B("An <b>editor approves</b> the story, which lifts it toward Ready to Publish."),
-          B("<b>Publishing</b> writes the story to the app and news website at once. AI stories that are Ready to Publish and fully dual-rated can auto-publish; everything else is published deliberately."),
-          B("Publishing records provenance: readers see whether a story was approved by an editor and verified by two raters.")]
-
-story += [H2("4.8 The Published archive")]
-story += [P("Everything live sits under <b>Published</b>, split into articles, photos, and videos. From there you can edit an article's details or remove an item. <b>Deletes take effect immediately</b> on the app and site, so treat them with care. Removing an article also detaches it in the newsroom.")]
-
-story += [H2("4.9 Standards, corrections & the audit log")]
-story += [B("<b>Standards</b> — the public editorial standards and classifications, edited by editors, shown on the news site."),
-          B("<b>Corrections</b> — the correction ledger. When we get something wrong, we log the correction; it publishes to the site."),
-          B("<b>Audit log</b> — a record of who did what (published, deleted, went live, sent an alert). This is our internal accountability trail.")]
-
-# ================= 5. READERS =================
-story += [PageBreak(), KICK("SECTION 5"), H1("What readers see")]
-story += [H2("The reader app (Dot 1 News)")]
-story += [P("The app is public and reader-only. Readers get the latest stories, a red <b>LIVE</b> banner on the home screen whenever we're broadcasting (tapping it opens the live player), a videos area for recorded episodes, and push notifications. There is no staff functionality in the app by design — all production happens in the portal.")]
-story += [H2("The news website (news.dot1.media)")]
-story += [B("The public reader site, carrying the same published stories."),
-          B("<b>Standpoint pages</b> — standards, corrections, ownership, advertising, and contact, fed from the newsroom."),
-          B("A <b>/live</b> page that shows the stream when we're on air."),
-          B("A <b>Send a news tip</b> page linked in the footer.")]
-story += [H2("The company site (dot1.media)")]
-story += [P("Dot One Media's main site also carries a <b>Submit a news tip</b> button so tips can come from there too. All tips, from anywhere, land in the same newsroom Tips queue.")]
-
-# ================= 6. BROADCAST =================
-story += [PageBreak(), KICK("SECTION 6"), H1("Broadcast — the production process")]
-story += [P("This section covers the studio end to end: how the gear connects, how to run a show, how to publish a recorded episode, and how to go live. The same switch feeds both a widescreen (16:9) program and a vertical (9:16) social output, and on-air graphics are driven from the portal.")]
-
-story += [H2("6.1 Equipment & signal flow")]
-story += [P("The chain is: <b>Cameras → ATEM switcher → OBS (adds graphics) → recording or live stream</b>. Graphics reach OBS from the portal through a server channel. Lay it out like this:")]
-story += [B("<b>Cameras (Canon C50 / C400)</b> connect by HDMI into the ATEM's inputs 1–4."),
-          B("<b>ATEM Mini Pro ISO</b> switches between cameras and mixes audio; a single USB-C cable carries the program to the computer, where it appears as a webcam."),
-          B("<b>A microphone</b> goes into the ATEM's 3.5&nbsp;mm audio input (or camera audio rides the HDMI)."),
-          B("<b>OBS</b> on the computer takes the ATEM feed, lays the Dot 1 News graphics overlay on top, and records or streams."),
-          B("<b>The editorial portal</b> drives the graphics (lower thirds, bug, ticker, breaking) live.")]
-story += [box([NOTE("One rule prevents most problems: cameras, ATEM, and OBS should all run at the same frame rate (all 1080p 30, or all 1080p 60). Mixed frame rates cause stutter and audio drift.")])]
-
-story += [H2("6.2 Cameras (Canon C50 / C400)")]
-story += [B("Turn on <b>clean HDMI output</b> so menus and focus guides don't appear on air."),
-          B("Set every camera to the same resolution and frame rate: 1920×1080, all 30p or all 60p."),
-          B("Run each camera's HDMI into ATEM inputs 1–4; seat connectors firmly."),
-          B("Frame with vertical in mind — the 9:16 output is a centre crop of the 16:9 picture, so keep subjects near centre."),
-          B("Optionally let cameras also record locally as a backup.")]
-
-story += [H2("6.3 Audio")]
-story += [B("Simplest path: a host mic into the ATEM's 3.5&nbsp;mm input; set its level on the ATEM."),
-          B("In the ATEM audio mixer, set the host mic to ON; use audio-follows-video for sources that should only be heard when live."),
-          B("Aim for peaks around −12 to −6&nbsp;dB. Red (0&nbsp;dB) is clipping — turn it down.")]
-
-story += [H2("6.4 ATEM Mini Pro ISO")]
-story += [B("<b>Connect</b>: cameras to HDMI IN 1–4; USB-C to the computer; optional HDMI OUT to a monitor."),
-          B("<b>Switch</b>: the Program buttons pick what's live; CUT is a hard cut, AUTO runs the selected transition."),
-          B("<b>ISO record</b> (optional): a fast USB-C SSD records each input separately for editing in DaVinci later."),
-          B("The ATEM Software Control app gives deeper audio and macro settings; not required for a basic show.")]
-
-story += [H2("6.5 OBS — the 16:9 program")]
-story += [N(1, "Add the ATEM feed: Sources → + → <b>Video Capture Device</b> → pick the Blackmagic ATEM; set 1920×1080."),
-          N(2, "Set the canvas: Settings → Video → Base and Output 1920×1080, FPS matching the cameras."),
-          N(3, "Add the overlay: Sources → + → <b>Browser Source</b>, URL from the portal's Broadcast → Live tools (the 16:9 Program URL, <font face='Courier'>editorial.dot1.media/broadcast/dot1-news-broadcast.html</font>), 1920×1080."),
-          N(4, "Place the overlay <b>above</b> the camera source. It detects OBS and runs transparent automatically."),
-          N(5, "Confirm the ATEM's audio appears in the OBS Audio Mixer.")]
-
-story += [H2("6.6 OBS — the 9:16 vertical / social output")]
-story += [P("For TikTok, Reels, and Shorts, run a second, vertical output. It reads the same graphics, so one push from the portal drives both formats.")]
-story += [N(1, "Make a separate OBS <b>profile and scene collection</b> so it stays independent."),
-          N(2, "Set the canvas to <b>1080×1920</b> (portrait), same FPS as the 16:9 profile."),
-          N(3, "Add the ATEM and crop it to a centre 9:16 (don't stretch)."),
-          N(4, "Add the vertical overlay Browser Source (the vertical Program URL, <font face='Courier'>…/dot1-news-vertical.html</font>), 1080×1920, above the camera."),
-          N(5, "On the vertical, the ticker shows as a headline <b>strap</b> instead of a crawl; lower third, bug, and breaking carry over identically.")]
-
-story += [H2("6.7 On-air graphics (driven from the portal)")]
-story += [P("You control graphics from the portal, not from OBS — OBS just displays what the portal sends. A producer needs go-live/broadcast permission.")]
+# ===== 12. BROADCAST =====
+story += [PageBreak(), KICK("SECTION 12"), H1("Broadcast — the production process")]
+story += [P("The studio runs one switch that feeds both a widescreen (16:9) program and a vertical (9:16) social output, with on-air graphics driven from the editorial portal.")]
+story += [H2("12.1 Equipment & signal flow")]
+story += [P("The chain: <b>Cameras → ATEM switcher → OBS (adds graphics) → recording or live stream</b>, with graphics reaching OBS from the portal.")]
+story += [B("<b>Cameras (Canon C50 / C400)</b> → HDMI into ATEM inputs 1–4."),
+          B("<b>ATEM Mini Pro ISO</b> switches cameras and mixes audio; one USB-C cable carries the program to the computer as a webcam."),
+          B("<b>A mic</b> goes into the ATEM's 3.5&nbsp;mm input (or camera audio over HDMI)."),
+          B("<b>OBS</b> takes the ATEM feed, lays the graphics overlay on top, and records or streams."),
+          B("<b>The editorial portal</b> drives lower thirds, bug, ticker, and breaking, live.")]
+story += [box([NOTE("One rule prevents most problems: cameras, ATEM, and OBS should all run the same frame rate (all 1080p 30, or all 1080p 60).")])]
+story += [H2("12.2 Cameras, audio, ATEM")]
+story += [B("Cameras: turn on clean HDMI output (no menus on air), set all to the same 1920×1080 frame rate, and frame subjects near centre so the 9:16 crop works."),
+          B("Audio: mic into the ATEM, host mic ON in the mixer, peaks around −12 to −6&nbsp;dB (red is clipping)."),
+          B("ATEM: cameras to HDMI 1–4, USB-C to the computer; Program buttons pick what's live (CUT hard-cuts, AUTO transitions); an optional USB-C SSD records each input for editing.")]
+story += [H2("12.3 OBS — 16:9 and 9:16")]
+story += [B("<b>16:9 program</b>: add the ATEM as a Video Capture Device (1920×1080); add the overlay as a Browser Source using the Program URL from Broadcast → Live tools; place it above the camera. It runs transparent automatically."),
+          B("<b>9:16 vertical</b>: a separate OBS profile at 1080×1920, the ATEM cropped to a centre 9:16, and the vertical overlay Browser Source on top. It reads the same graphics, so one push drives both; the ticker shows as a headline strap on vertical.")]
+story += [H2("12.4 On-air graphics (from the portal)")]
 story += [B("<b>Lower thirds</b>: Broadcast → open a rundown segment → Take to air; Clear removes it."),
-          B("<b>Bug, ticker, breaking</b>: Broadcast → On-air graphics → Show / Hide; edit the ticker and press Update."),
-          B("Anything you push appears on the OBS overlay within about a second, on both the 16:9 and 9:16 outputs.")]
+          B("<b>Bug, ticker, breaking</b>: Broadcast → On-air graphics → Show / Hide; edit the ticker and Update."),
+          B("Pushes appear on the OBS overlay within about a second, on both outputs. Needs broadcast permission.")]
+story += [H2("12.5 Recorded episodes (DaVinci → publish)")]
+story += [N(1, "Record (OBS or the ATEM's ISO record)."),
+          N(2, "Edit and colour in DaVinci Resolve; export a finished 1080p file."),
+          N(3, "Broadcast → Publish episode; add title, description, category, host; drop in the file; Upload &amp; publish (or draft)."),
+          N(4, "It uploads to Cloudflare Stream (resumable), is encoded, and appears in the app and site, under Published → Videos.")]
+story += [H2("12.6 Going live")]
+story += [N(1, "One-time: Broadcast → Go live → Set up live input; copy the OBS Server URL and Stream key."),
+          N(2, "OBS: Settings → Stream → service Custom; paste them; Start Streaming."),
+          N(3, "In the portal, press Go live and set a title; the LIVE surface appears on the site and app and a notification goes out."),
+          N(4, "End broadcast when done; Cloudflare keeps the recording, which can become an episode.")]
+story += [box([NOTE("The Stream key is a credential — Producer/Owner only; never paste it publicly. Normal quirks: a 10–20 second beat before the stream is playable, and a short delay behind real time.")])]
 
-story += [H2("6.8 Recorded episodes (DaVinci → publish)")]
-story += [N(1, "Record the show in OBS, or use the ATEM's ISO record for separate camera files."),
-          N(2, "Edit and colour in <b>DaVinci Resolve</b>; export a finished file (1080p H.264/H.265 MP4 is ideal)."),
-          N(3, "In the portal: Broadcast → <b>Publish episode</b>. Add title, description, category, and host."),
-          N(4, "Drop in the exported file and press Upload &amp; publish (or Upload as draft)."),
-          N(5, "The file uploads to Cloudflare Stream (resumable — a large export is fine); it's encoded and appears in the app and site, and lives under Published → Videos.")]
-story += [NOTE("Producers, editors, and owners can publish episodes. Keep the tab open until the upload reaches 100%.")]
+# ===== 13. AUDIENCE =====
+story += [PageBreak(), KICK("SECTION 13"), H1("Reaching the audience")]
+story += [B("<b>Push notifications</b> — automatic when we go live and when an episode publishes; a Send Alert page pushes breaking news to everyone with the app (preview + confirm). We don't notify on every story, to avoid spamming."),
+          B("<b>Readership analytics</b> — the Readership page shows reads, unique readers, app opens, live tune-ins, a 14-day chart, and most-read stories. First-party and anonymous: no names, no IP, no third-party trackers."),
+          B("<b>News tips</b> — public submissions from the app and both websites arrive in the Tips queue; can be anonymous.")]
 
-story += [H2("6.9 Going live")]
-story += [P("Live streams to the app and site through Cloudflare Stream, controlled from Broadcast → Go live.")]
-story += [N(1, "<b>One-time</b>: a producer presses <b>Set up live input</b>, which returns an OBS Server URL and a Stream key."),
-          N(2, "In OBS: Settings → Stream → service <b>Custom</b>; paste the Server and Stream key; Start Streaming."),
-          N(3, "In the portal, press <b>Go live</b> and set a title. The LIVE surface appears on the site and app within seconds, and a notification goes out."),
-          N(4, "Drive graphics from On-air graphics as usual."),
-          N(5, "Press <b>End broadcast</b> when done. Cloudflare keeps the recording, which can become a posted episode.")]
-story += [box([NOTE("The Stream key is a credential — anyone with it could broadcast as us. It's Producer/Owner only; never paste it anywhere public. If it leaks, ask for a new live input to be provisioned. Two normal things: a 10–20 second beat after Start Streaming before the stream is playable, and a short delay behind real time (inherent to live video).")])]
+# ===== 14. RUNBOOKS =====
+story += [PageBreak(), KICK("SECTION 14"), H1("Routine procedures (runbooks)")]
+story += [H2("Book a client (studio)")]
+story += [N(1, "Sessions → New internal booking (or send an invoice, below)."),
+          N(2, "Enter client, service, date/time, and any amount to collect now."),
+          N(3, "Create it; the client is emailed the agreement and details (and a payment request if set).")]
+story += [H2("Send an invoice")]
+story += [N(1, "Sessions → New invoice; enter client, service, add-ons or custom lines; preview."),
+          N(2, "Send; the client gets the PDF and a 50% retainer payment link."),
+          N(3, "After paying, they sign agreements and set a password, then reach their dashboard.")]
+story += [H2("Move a session to delivery")]
+story += [N(1, "Advance the session stage by stage (choose whether to email at each)."),
+          N(2, "At delivery, paste the gallery link (photos) or video link, and confirm the send."),
+          N(3, "At final delivery, the client is invited to leave a review.")]
+story += [H2("Check gear out & back in")]
+story += [N(1, "Assets → Checked Out → check out the package for the shoot with a due-back date."),
+          N(2, "After the shoot, check it in; overdue kits are flagged until returned.")]
+story += [H2("Publish a news story")]
+story += [N(1, "Complete sources, evidence, reporting log, and verification to Verified."),
+          N(2, "Add the independent second rating; editor approves to Ready to Publish."),
+          N(3, "Publish; confirm it appears on the site and in the app.")]
+story += [H2("Produce a recorded episode")]
+story += [N(1, "Record, then edit and colour in DaVinci; export 1080p."),
+          N(2, "Broadcast → Publish episode; fill metadata; upload; publish.")]
+story += [H2("Run a live broadcast")]
+story += [N(1, "Dry-run the gear; Set up live input; paste Server/key in OBS; Start Streaming."),
+          N(2, "Go live in the portal with a title; drive graphics; End broadcast when done.")]
 
-story += [H2("6.10 Before every broadcast — dry run")]
-story += [N(1, "Cameras: clean HDMI on, all the same 1080p frame rate, into ATEM 1–4."),
-          N(2, "Audio: mic in, level set, mixer ON, no red clipping."),
-          N(3, "ATEM: USB-C to the computer; cut through inputs and confirm every camera shows."),
-          N(4, "OBS: ATEM as Video Capture Device; overlay Browser Source on top; audio in the mixer."),
-          N(5, "Portal: Broadcast → On-air graphics; Show the bug → confirm in OBS → Hide."),
-          N(6, "Lower third: Take from a rundown segment → confirm → Clear."),
-          N(7, "Record a 60-second test while switching cameras and pushing graphics; review it."),
-          N(8, "If going live: Set up live input → OBS server/key → Start Streaming → Go live → confirm /live and the app banner → End.")]
-
-# ================= 7. AUDIENCE =================
-story += [PageBreak(), KICK("SECTION 7"), H1("Reaching the audience")]
-story += [H2("7.1 Push notifications")]
-story += [B("<b>Automatic</b>: readers are notified when we go live and when a recorded episode is published."),
-          B("<b>Manual</b>: the <b>Send Alert</b> page pushes a breaking-news alert to everyone with the app; it has a live preview and a confirm step. Sending needs publish or broadcast permission."),
-          B("We deliberately do <b>not</b> notify on every published story, to avoid overwhelming readers. Use Send Alert for the ones that matter.")]
-story += [H2("7.2 Readership analytics")]
-story += [P("The <b>Readership</b> page shows reads, unique readers, app opens, live tune-ins, a 14-day readers-per-day chart, and most-read stories. It's <b>first-party and anonymous</b> — a random per-device id, no names, no IP, no third-party trackers. We measure our audience without surveilling them, which is consistent with our standard.")]
-story += [H2("7.3 News tips")]
-story += [P("The public can submit tips from the app and from both websites. Tips can be anonymous. They all arrive in the newsroom Tips queue for triage (Section 4.4). Protect tipster confidentiality.")]
-
-# ================= 8. RUNBOOKS =================
-story += [PageBreak(), KICK("SECTION 8"), H1("Routine procedures (runbooks)")]
-story += [H2("Publishing a story")]
-story += [N(1, "Open the story; complete sources, evidence, and the reporting log."),
-          N(2, "Work verification until the ladder reaches Verified."),
-          N(3, "Add the independent second rating on the Score tab."),
-          N(4, "Editor reviews and approves → Ready to Publish."),
-          N(5, "Publish. Confirm it appears on the news site and in the app.")]
-story += [H2("Producing a recorded episode")]
-story += [N(1, "Record (OBS or ATEM ISO)."),
-          N(2, "Edit and colour in DaVinci; export a finished 1080p file."),
-          N(3, "Broadcast → Publish episode; fill metadata; upload; publish."),
-          N(4, "Confirm it appears under Published → Videos and in the app once encoded.")]
-story += [H2("Running a live broadcast")]
-story += [N(1, "Complete the dry run (6.10)."),
-          N(2, "Set up live input (once) → paste Server/key in OBS → Start Streaming."),
-          N(3, "Go live in the portal with a title; confirm /live and the app banner."),
-          N(4, "Drive graphics from On-air graphics."),
-          N(5, "End broadcast; the recording is kept for posting.")]
-story += [H2("Sending breaking news")]
-story += [N(1, "Broadcast/publish the story first so there's something to open."),
-          N(2, "Send Alert → write a short title and message → check the preview → Confirm send.")]
-
-# ================= 9. TROUBLESHOOTING =================
-story += [PageBreak(), KICK("SECTION 9"), H1("Troubleshooting")]
+# ===== 15. TROUBLESHOOTING =====
+story += [PageBreak(), KICK("SECTION 15"), H1("Troubleshooting")]
 trb = [
-    ("A page or button is missing", "It's gated to a role you don't have. Ask an Owner to grant it in Accounts."),
-    ("AI Desk says it isn't configured", "A maintainer needs to set its key on the portal; not a day-to-day newsroom fix."),
-    ("A story won't publish", "It isn't Ready to Publish — finish claims, checklist, and editor approval."),
-    ("AI draft won't auto-publish", "It needs both Ready to Publish and a complete dual rating (a human second rating)."),
-    ("Published story shows no verified mark", "It was published before the provenance update, or never got a second rating — re-publish."),
-    ("ATEM not listed in OBS", "Re-seat the USB-C cable; pick the ATEM in Video Capture Device; quit ATEM Software Control if it's holding the device."),
-    ("A camera input is black", "Check HDMI is seated and the camera outputs clean 1080p at the same frame rate; try another ATEM input."),
-    ("Graphics don't show in OBS", "Right-click the browser source → Refresh; confirm the correct Program URL (16:9 vs 9:16); confirm you pushed from the portal and have broadcast rights."),
-    ("Overlay has a black background", "It isn't in output mode — it must be the OBS browser source (which auto-detects), or add ?output to the URL."),
+    ("A page or button is missing", "It's gated to a role you don't have. Ask an Owner (newsroom) or the studio."),
+    ("Can't get into the asset system", "Sign in at portal.dot1.media first; that same login carries into assets."),
+    ("A client's payment didn't show", "Use the Check / Sync button to re-query Square; deposits and balances reconcile automatically."),
+    ("A client didn't get an email", "Delivery depends on our email domain being verified; copy the payment or gallery link from the session and send it another way, and have the domain settings checked."),
+    ("A booking or portal change didn't appear", "The portal caches; hard-refresh the page twice to pick up the newest version."),
+    ("Gear shows as out but isn't", "Someone checked a package out and didn't check it in — check it in from Assets → Checked Out."),
+    ("A story won't publish", "It isn't Ready to Publish — finish verification and editor approval."),
+    ("Graphics don't show in OBS", "Refresh the browser source; confirm the correct Program URL (16:9 vs 9:16) and that you pushed from the portal with broadcast rights."),
     ("/live is black or no banner", "Give it 10–20 seconds after Start Streaming and refresh; confirm you pressed Go live."),
-    ("Notification didn't arrive", "Confirm the reader allowed notifications, and that they're on a build that includes the push key; test on a real device, not a simulator."),
-    ("No audio in OBS", "Unmute the ATEM device in the OBS Audio Mixer; confirm the mic is ON in the ATEM mixer."),
+    ("Notification didn't arrive", "The reader must have allowed notifications and be on a current build; test on a real device."),
 ]
 for q, a in trb:
     story += [Paragraph(f"<b>{q}</b>", ParagraphStyle("tq", parent=st["body"], textColor=DEEP, spaceAfter=1)),
               Paragraph(a, ParagraphStyle("ta", parent=st["body"], leftIndent=10, spaceAfter=6))]
 
-# ================= 10. MAINTAINER =================
-story += [PageBreak(), KICK("SECTION 10"), H1("Maintainer & admin reference")]
-story += [P("This section is for whoever maintains the software (the Owner or a technical contact), not day-to-day staff.")]
-story += [H3("Configuration (set on the hosting for each project, then redeploy)")]
-story += [B("<b>AI Desk</b> — a generation key enables automated drafting."),
-          B("<b>Live &amp; video</b> — Cloudflare Stream requires the account id, a Stream API token, and the customer-code (the code only, not the full hostname)."),
-          B("<b>News database</b> — the connection the portal writes published content, live state, tips, tokens, and analytics into.")]
-story += [H3("Credentials — handle with care")]
-story += [B("The broadcast Stream key and all API tokens are secrets. Never commit them or post them publicly."),
-          B("If a secret leaks, rotate it (for live, provision a new live input)."),
-          B("Staff never enter passwords or payment details into automated tools; those are done by a person directly.")]
-story += [H3("App releases (iOS/Android)")]
-story += [B("<b>Over-the-air</b>: JavaScript/content changes can ship without an app-store review."),
-          B("<b>A new build</b> is needed for anything native — the splash, icon, permissions, or push setup."),
-          B("Bump the version before uploading if the current version is already live on the store.")]
+# ===== 16. MAINTAINER =====
+story += [PageBreak(), KICK("SECTION 16"), H1("Maintainer & admin reference")]
+story += [P("For whoever maintains the software (the Owner or a technical contact), not day-to-day staff.")]
+story += [H3("Cross-app sign-in")]
+story += [B("The shared studio login works because the portal and asset system use the same signing secret. That secret must be identical across both hosting projects."),
+          B("The newsroom and news app are intentionally separate logins.")]
+story += [H3("Payments, email & integrations (portal)")]
+story += [B("Square provides payments; a signed webhook keeps records in sync once configured in the Square dashboard."),
+          B("Email is sent through Resend; the dot1.media domain must be verified (SPF/DKIM/DMARC) or messages may not land, especially at Gmail/Outlook/military inboxes."),
+          B("The Google review link and the asset-system connection (for gear-package dropdowns) are set as configuration on the portal.")]
+story += [H3("Video & app")]
+story += [B("Live and recorded video use Cloudflare Stream (account id, Stream token, and the customer-code — the code only)."),
+          B("App releases: JavaScript/content changes can ship over-the-air; native changes (splash, icon, permissions, push) need a new build. Bump the version if the current one is already on the store.")]
+story += [H3("Housekeeping")]
+story += [B("The client portal caches aggressively; its service-worker cache name must be bumped every deploy or clients see stale pages."),
+          B("Agreement PDFs live in the dot1.media website repository, separate from the portal."),
+          B("Secrets (Square keys, Stream key, tokens) are never committed or posted; if one leaks, rotate it (for live, provision a new live input).")]
 
-# ================= 11. GLOSSARY =================
-story += [PageBreak(), KICK("SECTION 11"), H1("Glossary")]
+# ===== 17. GLOSSARY =====
+story += [PageBreak(), KICK("SECTION 17"), H1("Glossary")]
 gloss = [
     ("ATEM", "The Blackmagic video switcher that combines the cameras and audio into one feed."),
-    ("Bug", "The small on-screen logo/identifier shown during a broadcast."),
-    ("Bus", "The server channel that carries graphics from the portal to the OBS overlay."),
-    ("D1-4LS", "Dot 1 News's rating framework for reporting; stories are dual-rated against it."),
+    ("Bug", "The small on-screen logo/identifier during a broadcast."),
+    ("Check-out / check-in", "Taking a gear package out for a shoot and returning it, tracked in the asset system."),
+    ("CloudSpot", "The studio's photo gallery/delivery tool; the portal links out to its galleries."),
+    ("D1-4LS", "Dot 1 News's rating framework; stories are dual-rated against it."),
     ("Dual rating", "A machine rating plus an independent human second rating, reconciled."),
-    ("HLS", "The adaptive streaming format used for live and recorded video; plays on any device."),
-    ("Lower third", "The name/title graphic across the lower part of the screen."),
-    ("OBS", "The software on the studio computer that adds graphics and records/streams."),
+    ("Internal booking", "A studio-only session created without a client portal account (email only)."),
+    ("Invoice", "A bill sent to a client that doubles as a booking once the retainer is paid."),
+    ("Lifecycle", "When equipment needs replacing (purchase date + lifespan) or a license renewing (renewal date)."),
+    ("OBS", "The studio computer software that adds graphics and records/streams."),
     ("OTA", "Over-the-air: shipping a JavaScript app update without an app-store review."),
-    ("Provenance", "The mark shown to readers indicating a story was editor-approved and dual-verified."),
+    ("Package", "A named kit of gear built from inventory and attached to a session type."),
+    ("Retainer", "The up-front payment to secure a booking (video 50%; photography full or half)."),
     ("Review ladder", "The automatic status a story climbs from Not Verified to Ready to Publish."),
-    ("Rundown", "The ordered list of segments for an episode or broadcast."),
-    ("Ticker / strap", "The scrolling headline strip (16:9) or headline strap (9:16)."),
+    ("Session", "A single client job in the portal, tracked along the status timeline."),
+    ("SSO", "Single sign-on: one studio login that works across the portal and the asset system."),
+    ("Status timeline", "The seven stages a client session moves through, visible to the client."),
+    ("Square", "Our payment processor for client work."),
 ]
 for term, d in gloss:
     story += [Paragraph(f"<b>{term}</b> — {d}", ParagraphStyle("gl", parent=st["body"], leftIndent=12, firstLineIndent=-12, spaceAfter=5))]
 
-story += [SP(14), box([Paragraph("Dot 1 News · Just Truth, No Bias · A Declared Standpoint", ParagraphStyle("end", parent=st["body"], alignment=TA_CENTER, textColor=DEEP)),
-    Paragraph("This manual is regenerated as the system changes. When in doubt, the portal's in-app Guide and the printable handouts hold the current detail.", ParagraphStyle("end2", parent=st["body"], alignment=TA_CENTER, fontSize=8, textColor=MUTED))], bg=HexColor("#f6efe0"), stroke=GOLD)]
+story += [SP(14), box([Paragraph("Dot One Media · A Declared Standpoint", ParagraphStyle("end", parent=st["body"], alignment=TA_CENTER, textColor=DEEP)),
+    Paragraph("This handbook is regenerated as the systems change. Each portal also has its own in-app guide with the finest detail.", ParagraphStyle("end2", parent=st["body"], alignment=TA_CENTER, fontSize=8, textColor=MUTED))], bg=HexColor("#f6efe0"), stroke=GOLD)]
 
 def build():
     doc = Manual(PATH)
     doc.multiBuild(story)
-    print("Operations Manual:", os.path.getsize(PATH), "bytes")
+    print("Employee Handbook:", os.path.getsize(PATH), "bytes")
 
 if __name__ == "__main__":
     build()
