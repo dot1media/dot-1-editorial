@@ -58,6 +58,7 @@ export async function ensureSchema(): Promise<void> {
   )`;
   await sql`CREATE INDEX IF NOT EXISTS idx_stories_status ON stories(status)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_stories_updated ON stories(updated_at DESC)`;
+  await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS hero_image_credit TEXT DEFAULT ''`;
 
   // Sources attached to a story.
   await sql`CREATE TABLE IF NOT EXISTS story_sources (

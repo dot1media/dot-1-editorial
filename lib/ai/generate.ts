@@ -1,5 +1,6 @@
 import type { FeedItem } from './rss';
 import { fetchOgImage } from './rss';
+import { searchOpenverseImage } from './images';
 import type { FeedSource } from './sources';
 import { CATEGORY_FALLBACK_IMAGES, fallbackImageFor } from './sources';
 import { EDITORIAL_THESIS, turningsForPrompt } from './editorialThesis';
@@ -41,6 +42,7 @@ export interface GeneratedArticle {
   summary: string;
   content: string;
   image: string;
+  imageCredit: string;
   tags: string[];
   citations: string; // JSON array [{title,url,source}]
   editorNote: string; // reader-facing: why this story earned a place today
@@ -112,6 +114,7 @@ function buildTemplateArticle(item: FeedItem, source: FeedSource): GeneratedArti
     summary: humanizeProse(summary),
     content: humanizeProse(content),
     image: item.imageUrl || fallbackImageFor(source.category, item.link),
+    imageCredit: '',
     tags: [source.category, 'curated'],
     citations: JSON.stringify([{ title: item.title, url: item.link, source: source.name }]),
     editorNote: '',
@@ -369,6 +372,7 @@ function buildTwoPassArticle(
     content: humanizeProse(draft.body),
     editorNote: humanizeProse(draft.editorNote),
     image: item.imageUrl || fallbackImageFor(source.category, item.link),
+    imageCredit: '',
     tags: draft.tags,
     citations: JSON.stringify([{ title: item.title, url: item.link, source: source.name }]),
     indicators,
@@ -401,6 +405,7 @@ export async function generateArticle(
     try { const og = await fetchOgImage(item.link, 4000); if (og) item.imageUrl = og; } catch {}
   }
   const apiKey = process.env.ANTHROPIC_API_KEY;
+  let article: GeneratedArticle | null = null;
   if (apiKey) {
     const started = Date.now();
     const writerBudget = Math.min(45000, Math.floor(aiTimeoutMs * 0.55));
@@ -413,9 +418,21 @@ export async function generateArticle(
       const scored = validateScorer(rawScorer);
       if (!scored) console.warn(`⚖️  Scorer pass unavailable for "${draft.title.slice(0, 50)}" — neutral baseline applied`);
       console.log(`✍️  2-pass ${scored ? 'complete' : 'degraded'} in ${Date.now() - started}ms: "${draft.title.slice(0, 50)}"`);
-      return buildTwoPassArticle(item, source, draft, scored);
+      article = buildTwoPassArticle(item, source, draft, scored);
+    } else {
+      console.warn(`✍️  Writer pass failed for "${item.title.slice(0, 50)}" — falling back to template`);
     }
-    console.warn(`✍️  Writer pass failed for "${item.title.slice(0, 50)}" — falling back to template`);
   }
-  return buildTemplateArticle(item, source);
+  if (!article) article = buildTemplateArticle(item, source);
+
+  // No outlet photo (feed or og:image)? Find a relevant, license-clear image and
+  // credit it. On any miss, the branded category fallback already on the article stays.
+  if (!item.imageUrl) {
+    try {
+      const q = [(article.tags || []).slice(0, 3).join(' '), article.title, source.category].filter(Boolean).join(' ').trim();
+      const sourced = await searchOpenverseImage(q);
+      if (sourced && sourced.url) { article.image = sourced.url; article.imageCredit = sourced.credit; }
+    } catch {}
+  }
+  return article;
 }
