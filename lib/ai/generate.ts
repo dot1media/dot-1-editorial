@@ -1,4 +1,5 @@
 import type { FeedItem } from './rss';
+import { fetchOgImage } from './rss';
 import type { FeedSource } from './sources';
 import { CATEGORY_FALLBACK_IMAGES, fallbackImageFor } from './sources';
 import { EDITORIAL_THESIS, turningsForPrompt } from './editorialThesis';
@@ -393,6 +394,12 @@ export async function generateArticle(
   source: FeedSource,
   aiTimeoutMs = 80000,
 ): Promise<GeneratedArticle> {
+  // Prefer the outlet's own photojournalism: if the feed carried no image,
+  // pull the article page's og:image before any generic fallback. Best-effort;
+  // any failure leaves the category fallback in place.
+  if (!item.imageUrl) {
+    try { const og = await fetchOgImage(item.link, 4000); if (og) item.imageUrl = og; } catch {}
+  }
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (apiKey) {
     const started = Date.now();
