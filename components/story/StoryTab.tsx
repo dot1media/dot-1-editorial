@@ -18,6 +18,7 @@ export default function StoryTab({ data, reload, can }: { data: any; reload: () 
     priority: s.priority || "routine",
     location: s.location || "",
     heroImage: s.hero_image || "",
+    heroImageCredit: s.hero_image_credit || "",
     whyPublish: s.why_publish || "",
   });
   const [saved, setSaved] = useState(false);
@@ -97,6 +98,7 @@ export default function StoryTab({ data, reload, can }: { data: any; reload: () 
               )}
             </div>
             {f.heroImage && <img src={f.heroImage} alt="" style={{ marginTop: 8, width: "100%", maxHeight: 140, objectFit: "cover", borderRadius: 6 }} />}
+            {f.heroImage && <input className="in" style={{ marginTop: 8 }} value={f.heroImageCredit} disabled={!editable} onChange={(e) => set("heroImageCredit", e.target.value)} placeholder="Photo credit / source (required for licensed images)" />}
           </div>
         </div>
       </div>
