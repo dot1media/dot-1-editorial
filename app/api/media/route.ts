@@ -18,8 +18,28 @@ export async function POST(request: Request) {
   const { account } = gate;
   await ensureSchema();
 
+  const ctype = request.headers.get("content-type") || "";
+  // Link a real clip by URL: embed an official, attributed video instead of re-uploading footage.
+  if (ctype.includes("application/json")) {
+    const body: any = await request.json().catch(() => ({}));
+    const linkUrl = String(body.url || "").trim();
+    if (!/^https?:\/\//i.test(linkUrl)) {
+      return NextResponse.json({ error: "Provide a valid https video URL." }, { status: 400 });
+    }
+    const linkKind = body.kind === "image" ? "image" : "video";
+    const credit = String(body.credit || "").slice(0, 300);
+    const title = String(body.title || "").slice(0, 200);
+    const story = body.story ? String(body.story) : null;
+    const id = newId("media");
+    await sql`INSERT INTO media_assets (id, kind, blob_url, thumb_url, file_name, mime, title, credit, story_id, status, uploaded_by)
+      VALUES (${id}, ${linkKind}, ${linkUrl}, ${""}, ${""}, ${"link"}, ${title}, ${credit}, ${story}, 'library', ${account.email})`;
+    await audit(account.email, "media.link", "media", id, { kind: linkKind, story });
+    const rows = await sql`SELECT * FROM media_assets WHERE id = ${id} LIMIT 1`;
+    return NextResponse.json({ ok: true, asset: rows[0] });
+  }
+
   const url = new URL(request.url);
-  const mime = request.headers.get("content-type") || "";
+  const mime = ctype;
   const fileName = String(url.searchParams.get("filename") || "upload");
   const storyId = url.searchParams.get("story") || null;
 
