@@ -56,19 +56,39 @@ const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
 /* Template mode (no API key) — honest curation, no invented analysis */
 /* ------------------------------------------------------------------ */
 
+/** Strip machine tells so copy reads human: markdown emphasis, stray asterisks,
+ *  headers/bullets, and em/en dashes. Applied to every generated field. */
+export function humanizeProse(input: string): string {
+  if (!input) return input;
+  let t = input;
+  t = t.replace(/\*\*([^*]+)\*\*/g, '$1');          // **bold**
+  t = t.replace(/__([^_]+)__/g, '$1');               // __bold__
+  t = t.replace(/(^|[^\w*])\*([^*\n]+)\*(?=[^\w*]|$)/g, '$1$2'); // *italic*
+  t = t.replace(/(^|[^\w_])_([^_\n]+)_(?=[^\w_]|$)/g, '$1$2');     // _italic_
+  t = t.replace(/^\s{0,3}#{1,6}\s+/gm, '');          // # headers
+  t = t.replace(/^\s*[*\u2022]\s+/gm, '');           // bullet markers
+  t = t.replace(/\*/g, '');                           // any stray asterisk
+  t = t.replace(/\s*[\u2014\u2013\u2015]\s*/g, ', '); // em/en/horizontal dash -> comma
+  t = t.replace(/,\s*,/g, ',');
+  t = t.replace(/\s+,/g, ',');
+  t = t.replace(/[ \t]{2,}/g, ' ');
+  t = t.replace(/\n{3,}/g, '\n\n');
+  return t.trim();
+}
+
 function buildTemplateArticle(item: FeedItem, source: FeedSource): GeneratedArticle {
   const snippet = item.description || 'Read the full report at the source below.';
   const summary = snippet.length > 280 ? snippet.slice(0, 277) + '…' : snippet;
 
   const content = [
-    `**Curated brief — via ${source.name}**`,
+    `Curated brief, via ${source.name}`,
     '',
     snippet,
     '',
     `This item was automatically curated from ${source.name}. Read the full original report for complete details and context:`,
     item.link,
     '',
-    `_This brief is pending full editorial review under the D1-4LS dual-rater protocol._`,
+    `This brief is pending full editorial review under the D1-4LS dual-rater protocol.`,
   ].join('\n');
 
   // Worldview lenses default to the neutral midpoint (1 of 2 per indicator
@@ -87,9 +107,9 @@ function buildTemplateArticle(item: FeedItem, source: FeedSource): GeneratedArti
   });
 
   return {
-    title: item.title,
-    summary,
-    content,
+    title: humanizeProse(item.title),
+    summary: humanizeProse(summary),
+    content: humanizeProse(content),
     image: item.imageUrl || fallbackImageFor(source.category, item.link),
     tags: [source.category, 'curated'],
     citations: JSON.stringify([{ title: item.title, url: item.link, source: source.name }]),
@@ -155,16 +175,21 @@ const ARTICLE_INDICATORS = [
 ] as const;
 
 function buildWriterPrompt(item: FeedItem, source: FeedSource): string {
-  return `You are the staff writer for "Dot 1 News", a Christian news platform whose credibility rests on measured, verifiable reporting. You write the brief ONLY — a separate assessor will score it.
+  return `You are the staff writer for "Dot 1 News", a Christian news platform whose credibility rests on measured, verifiable reporting. You write the brief ONLY. A separate assessor will score it.
 
 EDITORIAL THESIS (governs everything you write): ${EDITORIAL_THESIS.mission}
 YOUR VOICE: ${EDITORIAL_THESIS.voice}
 GOVERNING PARADIGM: ${EDITORIAL_THESIS.paradigm}
 
-THE FIVE TURNINGS — apply every one of these as you write; they are how this brief turns the reader toward truth rather than away:
+THE FIVE TURNINGS, apply every one of these as you write; they are how this brief turns the reader toward truth rather than away:
 ${turningsForPrompt()}
 
-Your charter:
+VOICE AND STYLE (this is what makes the writing read like a person, not a machine):
+- Write in clean, natural prose. Vary your sentence length. Let some sentences run and others land short. Read it back in your head; if a line sounds like a template, rewrite it.
+- Do NOT use em-dashes or en-dashes anywhere. Use commas, periods, colons, or parentheses instead.
+- Do NOT use any markdown. No asterisks, no bold, no italics, no bullet points, no hash headers. Write plain paragraphs only.
+- Avoid the tells of machine writing. Do not use "moreover", "furthermore", "in conclusion", "it is worth noting", "sent shockwaves", "in the wake of", "underscores", "highlights the importance of", "delve", "a stark reminder", "landscape", or "tapestry". Prefer plain, denotative verbs.
+- No throat-clearing and no stacked hedges. Open with the fact.
 
 SOURCE ITEM (your ONLY factual material):
 - Outlet: ${source.name}
@@ -174,23 +199,26 @@ SOURCE ITEM (your ONLY factual material):
 - Published: ${item.publishedAt ? item.publishedAt.toISOString() : 'unknown'}
 - App category: ${source.category}
 
-0. HEADLINE DISCIPLINE: the source headline may be sensational. Your rewritten title must be calm, clear, and substantive — describe what actually happened, not the shock of it. Strip words engineered for a jolt (slams, shocking, chaos, bombshell, etc.). A reader should trust the headline is not manipulating them.
-1. STRUCTURE it in this order, without printing these labels: what happened (lede, 1–2 paragraphs) → key context or why-now → who is affected and what is at stake → what remains disputed, unknown, or unverified. If the source is thin, write SHORTER rather than padding — never invent names, numbers, quotes, dates, locations, or events absent from the source item.
+Your charter:
+
+0. HEADLINE DISCIPLINE: the source headline may be sensational. Your rewritten title must be calm, clear, and substantive. Describe what actually happened, not the shock of it. Strip words engineered for a jolt (slams, shocking, chaos, bombshell, and the like). A reader should trust the headline is not manipulating them.
+1. STRUCTURE it in this order, without printing these labels: what happened (lede, one to two paragraphs), then key context or why now, then who is affected and what is at stake, then what remains disputed, unknown, or unverified. If the source is thin, write SHORTER rather than padding. Never invent names, numbers, quotes, dates, locations, or events absent from the source item.
 2. ATTRIBUTION: credit ${source.name} within the first two paragraphs ("according to ${source.name}", "the outlet reports").
-3. LOADED-LANGUAGE AUDIT: before finalizing, re-read your draft and strip adjectives and verbs that smuggle judgment (e.g. slammed, radical, so-called, shocking, extremist) unless they appear inside an attributed quote from the source. Prefer denotative verbs: said, announced, reported, ruled.
-4. GENUINE DISPUTES: where the story involves contested positions, render the strongest honest version of each side's STATED reasoning in one sentence each. This is fairness on real disputes — do not manufacture balance on settled facts.
-5. TONAL FIREWALL: the brief above is measured reportage — no sermonizing, no editorial adjectives, no us-versus-them framing. Your Christian editorial voice lives ONLY in the section below.
+3. LOADED-LANGUAGE AUDIT: before finalizing, re-read your draft and strip adjectives and verbs that smuggle judgment (for example slammed, radical, so-called, shocking, extremist) unless they appear inside an attributed quote from the source. Prefer denotative verbs: said, announced, reported, ruled.
+4. GENUINE DISPUTES: where the story involves contested positions, render the strongest honest version of each side's stated reasoning in one sentence each. This is fairness on real disputes. Do not manufacture balance on settled facts.
+5. TONAL FIREWALL: the brief above is measured reportage, with no sermonizing, no editorial adjectives, and no us-versus-them framing. Your Christian editorial voice lives ONLY in the closing section.
 
-"**Through the Lens**" (closing section, 90–140 words):
-This is where Dot 1's voice speaks — warm, pastoral, intellectually honest. Connect the story to a specific biblical principle or passage (you may cite real references like "Micah 6:8" — never fabricate quotations). Name the human-dignity dimension. Avoid date-setting, avoid certainty about God's intentions in current events, avoid partisan cues. End with ONE contemplative question the reader can carry.
+Close the brief with a section. Put its heading on its own line, exactly the words below, with no asterisks and no other punctuation:
+Through the Lens
+Then write 90 to 140 words. This is where Dot 1's voice speaks: warm, pastoral, intellectually honest. Connect the story to a specific biblical principle or passage (you may cite real references like "Micah 6:8", but never fabricate quotations). Name the human-dignity dimension. Avoid date-setting, avoid certainty about God's intentions in current events, avoid partisan cues. End with ONE contemplative question the reader can carry.
 
-OUTPUT — ONLY a JSON object, no fences, no preamble:
+OUTPUT, ONLY a JSON object, no fences, no preamble:
 {
   "title": "concise headline, may lightly edit the original for clarity",
-  "summary": "1\u20132 sentences, max 280 chars",
-  "body": "the full brief in markdown, ending with the Through the Lens section",
+  "summary": "one to two sentences, max 280 chars, no em-dashes, no markdown",
+  "body": "the full brief in clean prose, no markdown, no asterisks, no em-dashes, ending with the Through the Lens section",
   "tags": ["3-5", "lowercase", "tags"],
-  "editorNote": "ONE plain sentence, max 160 chars, addressed to the reader: why this story earned a place in today's edition. Name the turning it serves (what it asks the reader to understand, whose dignity is at stake, what context it restores). No hype, no marketing, no restating the headline. If you cannot justify it in one honest sentence, the story should not run."
+  "editorNote": "ONE plain sentence, max 160 chars, addressed to the reader: why this story earned a place in today's edition. Name the turning it serves. No hype, no marketing, no restating the headline, no em-dashes."
 }`;
 }
 
@@ -335,10 +363,10 @@ function buildTwoPassArticle(
     : 'Automated scoring was unavailable for this article; neutral baseline scores applied pending review.';
 
   return {
-    title: draft.title,
-    summary: draft.summary,
-    content: draft.body,
-    editorNote: draft.editorNote,
+    title: humanizeProse(draft.title),
+    summary: humanizeProse(draft.summary),
+    content: humanizeProse(draft.body),
+    editorNote: humanizeProse(draft.editorNote),
     image: item.imageUrl || fallbackImageFor(source.category, item.link),
     tags: draft.tags,
     citations: JSON.stringify([{ title: item.title, url: item.link, source: source.name }]),
