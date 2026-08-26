@@ -13,16 +13,19 @@ export default function BroadcastHome() {
   const router = useRouter();
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
+  const [clips, setClips] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [creating, setCreating] = useState(false);
 
   async function load() {
-    const [e, t] = await Promise.all([
+    const [e, t, c] = await Promise.all([
       api<{ episodes: any[] }>("/api/broadcast/episodes"),
       api<{ templates: any[] }>("/api/broadcast/templates"),
+      api<{ assets: any[] }>("/api/media?kind=video"),
     ]);
     setEpisodes(e.episodes || []);
     setTemplates(t.templates || []);
+    setClips(c.assets || []);
     setLoaded(true);
   }
   useEffect(() => { load(); }, []);
@@ -67,6 +70,8 @@ export default function BroadcastHome() {
           <Section title="UPCOMING" episodes={upcoming} router={router} empty="No episodes planned. Create one to start building a rundown." />
           {past.length > 0 && <div style={{ height: 18 }} />}
           {past.length > 0 && <Section title="AIRED" episodes={past} router={router} empty="" />}
+          <div style={{ height: 18 }} />
+          <ClipsPanel clips={clips} />
         </>
       )}
 
@@ -94,6 +99,34 @@ function Section({ title, episodes, router, empty }: any) {
                 <td className="tiny">{e.segment_count}</td>
                 <td className="mono tiny">{fmtClock(e.runtime_seconds)}</td>
                 <td><span className={"chip" + (e.status === "aired" ? " ok" : e.status === "live" ? " crimson" : "")}>{EPISODE_STATUS.find((s) => s.id === e.status)?.label || e.status}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+function ClipsPanel({ clips }: { clips: any[] }) {
+  return (
+    <div className="card">
+      <div className="pad" style={{ borderBottom: "1px solid var(--line)", display: "flex", alignItems: "baseline", gap: 10 }}>
+        <span className="mono tiny" style={{ letterSpacing: "0.2em", color: "var(--gold)" }}>STORY CLIPS</span>
+        <span className="tiny muted">Attributed video attached to stories</span>
+      </div>
+      {clips.length === 0 ? (
+        <div className="pad muted tiny">No video clips yet. Attach one on a story's Media tab and it appears here.</div>
+      ) : (
+        <table className="grid-t">
+          <thead><tr><th>Clip</th><th>Credit</th><th>Story</th><th></th></tr></thead>
+          <tbody>
+            {clips.map((c: any) => (
+              <tr key={c.id}>
+                <td style={{ fontWeight: 600 }}><Film size={13} style={{ opacity: 0.5, marginRight: 7, verticalAlign: "middle" }} />{c.title || "Untitled clip"}{c.mime === "link" ? <span className="chip dim" style={{ marginLeft: 8 }}>embed</span> : null}</td>
+                <td className="tiny muted">{c.credit || "\u2014"}</td>
+                <td className="tiny">{c.story_id ? <Link href={`/stories/${c.story_id}`} style={{ color: "var(--gold)" }}>Open story</Link> : <span className="muted">Library</span>}</td>
+                <td><a href={c.blob_url} target="_blank" rel="noopener noreferrer" className="btn ghost sm">Open clip</a></td>
               </tr>
             ))}
           </tbody>
