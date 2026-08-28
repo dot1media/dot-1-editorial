@@ -16,7 +16,8 @@ export const maxDuration = 300;
 //   3. DAILY CAP — never generate more than PIPELINE_DAILY_CAP AI drafts per day (default 5).
 async function handle(request: Request) {
   const secret = process.env.CRON_SECRET || "";
-  if (secret) {
+  if (!secret) return NextResponse.json({ error: "Cron is not configured (set CRON_SECRET)." }, { status: 503 });
+  {
     const url = new URL(request.url);
     const provided =
       (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "") ||

@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { newId, readJson } from "@/lib/api";
 import { corsHeaders } from "@/lib/cors";
+import { rateLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
@@ -13,19 +14,7 @@ export const runtime = "nodejs";
 
 // Simple in-memory rate limit. Serverless instances are ephemeral, so this is best-effort; it
 // blunts bursts without needing another table. Persisted limiting can come later if abuse appears.
-const hits = new Map<string, { n: number; reset: number }>();
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const windowMs = 60_000;
-  const max = 5;
-  const rec = hits.get(ip);
-  if (!rec || now > rec.reset) {
-    hits.set(ip, { n: 1, reset: now + windowMs });
-    return false;
-  }
-  rec.n += 1;
-  return rec.n > max;
-}
+// Rate limiting is DB-backed via lib/ratelimit, so it holds across serverless instances.
 
 export async function OPTIONS(request: Request) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(request.headers.get("origin")) });
@@ -41,7 +30,7 @@ export async function POST(request: Request) {
   if (b.website) return json({ ok: true }); // silently accept-and-drop so bots get no signal
 
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (rateLimited(ip)) return json({ error: "Too many submissions. Please try again in a minute." }, 429);
+  if (!(await rateLimit(`tip:ip:${ip}`, 5, 60))) return json({ error: "Too many submissions. Please try again in a minute." }, 429);
 
   const body = String(b.body || "").trim();
   if (!body) return json({ error: "Please include a message." }, 400);
