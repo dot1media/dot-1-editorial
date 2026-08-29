@@ -89,7 +89,7 @@ function Section({ title, episodes, router, empty }: any) {
       {episodes.length === 0 ? (
         <div className="pad muted tiny">{empty}</div>
       ) : (
-        <table className="grid-t">
+        <div className="table-wrap"><table className="grid-t">
           <thead><tr><th>Episode</th><th>Air date</th><th>Segments</th><th>Runtime</th><th>Status</th></tr></thead>
           <tbody>
             {episodes.map((e: any) => (
@@ -102,7 +102,7 @@ function Section({ title, episodes, router, empty }: any) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   );
@@ -118,7 +118,7 @@ function ClipsPanel({ clips }: { clips: any[] }) {
       {clips.length === 0 ? (
         <div className="pad muted tiny">No video clips yet. Attach one on a story's Media tab and it appears here.</div>
       ) : (
-        <table className="grid-t">
+        <div className="table-wrap"><table className="grid-t">
           <thead><tr><th>Clip</th><th>Credit</th><th>Story</th><th></th></tr></thead>
           <tbody>
             {clips.map((c: any) => (
@@ -130,7 +130,7 @@ function ClipsPanel({ clips }: { clips: any[] }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       )}
     </div>
   );

@@ -58,7 +58,7 @@ export default function PublishedPage() {
         <div className="card pad muted tiny">Nothing here yet.</div>
       ) : tab === "articles" ? (
         <div className="card">
-          <table className="grid-t">
+          <div className="table-wrap"><table className="grid-t">
             <thead><tr><th>Headline</th><th>Category</th><th>Score</th><th>Published</th><th></th></tr></thead>
             <tbody>
               {items.map((a) => (
@@ -74,7 +74,7 @@ export default function PublishedPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 14 }}>

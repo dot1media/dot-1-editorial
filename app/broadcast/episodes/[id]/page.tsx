@@ -73,7 +73,7 @@ export default function EpisodeBuilder() {
         <div>
           {/* Rundown */}
           <div className="card" style={{ overflow: "hidden" }}>
-            <table className="grid-t">
+            <div className="table-wrap"><table className="grid-t">
               <thead><tr><th style={{ width: 34 }}></th><th style={{ width: 60 }}>Start</th><th>Segment</th><th style={{ width: 90 }}>Type</th><th style={{ width: 64 }}>Est</th><th style={{ width: 70 }}></th></tr></thead>
               <tbody>
                 {segs.map((s, i) => {
@@ -106,7 +106,7 @@ export default function EpisodeBuilder() {
                 })}
                 {segs.length === 0 && <tr><td colSpan={6} className="pad muted tiny">No segments yet. Add one below.</td></tr>}
               </tbody>
-            </table>
+            </table></div>
           </div>
 
           {manage && (

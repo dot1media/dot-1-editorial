@@ -24,7 +24,7 @@ export default function AccountsPage() {
       actions={<button className="btn primary" onClick={() => setAdding(true)}><Plus size={15} /> Add account</button>}>
       {!loaded ? <span className="mono muted tiny">Loading…</span> : (
         <div className="card">
-          <table className="grid-t">
+          <div className="table-wrap"><table className="grid-t">
             <thead><tr><th>Email</th><th>Name</th><th>Role (from portal)</th><th>Overrides</th><th>Status</th><th></th></tr></thead>
             <tbody>
               {accounts.map((a) => {
@@ -41,7 +41,7 @@ export default function AccountsPage() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
 

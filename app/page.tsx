@@ -72,7 +72,7 @@ export default function Dashboard() {
             {recent.length === 0 ? (
               <div className="pad muted tiny">No stories yet. Create one from the Stories tab, or promote a tip.</div>
             ) : (
-              <table className="grid-t">
+              <div className="table-wrap"><table className="grid-t">
                 <thead>
                   <tr><th>Headline</th><th>Status</th><th>Priority</th><th>Review</th></tr>
                 </thead>
@@ -86,7 +86,7 @@ export default function Dashboard() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </div>
         </>

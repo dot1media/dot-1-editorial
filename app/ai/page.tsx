@@ -59,7 +59,7 @@ export default function AiDeskPage() {
         <div className="card pad muted tiny">No AI drafts yet. Generate now to pull from the wire.</div>
       ) : (
         <div className="card">
-          <table className="grid-t">
+          <div className="table-wrap"><table className="grid-t">
             <thead><tr><th>Headline</th><th>Source</th><th>Review</th><th>Score</th><th></th></tr></thead>
             <tbody>
               {drafts.map((d) => (
@@ -72,7 +72,7 @@ export default function AiDeskPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
     </Shell>

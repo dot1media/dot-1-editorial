@@ -58,7 +58,7 @@ function StoriesInner() {
         ) : stories.length === 0 ? (
           <div className="pad muted tiny">No stories match. {can("story.create") && "Create one to begin."}</div>
         ) : (
-          <table className="grid-t">
+          <div className="table-wrap"><table className="grid-t">
             <thead>
               <tr><th>Headline</th><th>Class</th><th>Status</th><th>Priority</th><th>Review</th><th>Updated</th></tr>
             </thead>
@@ -81,7 +81,7 @@ function StoriesInner() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
 

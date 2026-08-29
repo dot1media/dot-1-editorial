@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+export const viewport = { width: "device-width", initialScale: 1 };
+
 export const metadata: Metadata = {
   title: "Dot 1 News · Editorial",
   description: "The Dot 1 News editorial portal: standards, newsroom workflow, and publishing.",

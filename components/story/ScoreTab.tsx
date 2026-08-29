@@ -87,7 +87,7 @@ export default function ScoreTab({ data, reload, can }: { data: any; reload: () 
               </span>
             )}
           </div>
-          <table className="grid-t">
+          <div className="table-wrap"><table className="grid-t">
             <thead><tr><th>Rater</th><th>BAI</th><th>PSI</th><th>SCI</th><th>HII</th></tr></thead>
             <tbody>
               {ratings.map((r) => {
@@ -101,7 +101,7 @@ export default function ScoreTab({ data, reload, can }: { data: any; reload: () 
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
           {rec && (
             <div className="tiny muted">
               {rec.method === "single" ? "One rating so far. A second reviewer confirms or corrects the score." :

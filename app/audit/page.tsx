@@ -20,7 +20,7 @@ export default function AuditPage() {
     <Shell title="Audit Log" subtitle="Every consequential action, timestamped and attributed.">
       {!loaded ? <span className="mono muted tiny">Loading…</span> : (
         <div className="card">
-          <table className="grid-t">
+          <div className="table-wrap"><table className="grid-t">
             <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
             <tbody>
               {entries.map((e) => (
@@ -33,7 +33,7 @@ export default function AuditPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
     </Shell>
