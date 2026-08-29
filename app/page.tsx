@@ -40,7 +40,7 @@ export default function Dashboard() {
         <span className="mono muted tiny">Loading…</span>
       ) : (
         <>
-          <div className="grid" style={{ gridTemplateColumns: "repeat(4, 1fr)", marginBottom: 20 }}>
+          <div className="grid stat-grid" style={{ marginBottom: 20 }}>
             <Stat label="Active stories" value={active.length} href="/stories" />
             <Stat label="New tips" value={tips.length} href="/tips" accent={tips.length > 0} />
             <Stat label="Awaiting publish" value={readyish.length} href="/review" />
@@ -51,14 +51,14 @@ export default function Dashboard() {
             <div className="mono tiny" style={{ letterSpacing: "0.2em", color: "var(--gold)", marginBottom: 14 }}>
               THE WORKFLOW
             </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            <div className="flow">
               {STORY_LIFECYCLE.map((s, i) => (
-                <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Link href={`/stories?status=${s.id}`} className="card" style={{ padding: "8px 12px", display: "flex", flexDirection: "column", alignItems: "center", minWidth: 78 }}>
+                <div key={s.id} className="flow-item">
+                  <Link href={`/stories?status=${s.id}`} className="card flow-card">
                     <span className="disp" style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>{byStatus(s.id)}</span>
                     <span className="tiny muted" style={{ marginTop: 3, textAlign: "center" }}>{s.label}</span>
                   </Link>
-                  {i < STORY_LIFECYCLE.length - 1 && <span style={{ color: "var(--crimson)" }}>›</span>}
+                  {i < STORY_LIFECYCLE.length - 1 && <span className="flow-arrow">›</span>}
                 </div>
               ))}
             </div>
