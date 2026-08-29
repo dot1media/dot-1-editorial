@@ -28,6 +28,8 @@ function verify(token: string | undefined | null, role: string): { email: string
   try {
     const payload = JSON.parse(Buffer.from(body, "base64url").toString());
     if (payload.role !== role || typeof payload.exp !== "number" || Date.now() > payload.exp) return null;
+    const floor = Number(process.env.SESSION_MIN_IAT || 0);
+    if (floor && (typeof payload.iat !== "number" || payload.iat < floor)) return null;
     // The portal bakes suite claims (tier + per-app grants) into the cookie. We read them as a
     // fast fallback for when the portal can't be reached for a fresh check.
     return { email: String(payload.email || ""), tier: payload.tier, grants: payload.grants };
