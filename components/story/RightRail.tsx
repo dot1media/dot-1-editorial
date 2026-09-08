@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/client";
 import { STORY_LIFECYCLE, STORY_FLAGS } from "@/lib/newsroom";
@@ -21,6 +21,8 @@ export default function RightRail({ data, reload, can }: { data: any; reload: ()
   const s = data.story;
   const router = useRouter();
   const [pubOpen, setPubOpen] = useState(false);
+  const [related, setRelated] = useState<any[]>([]);
+  useEffect(() => { api<{ related: any[] }>(`/api/stories/${s.id}/related`).then((d) => setRelated(d.related || [])).catch(() => {}); }, [s.id, s.working_headline, s.final_headline]);
 
   async function setStatus(status: string) {
     await api(`/api/stories/${s.id}/status`, { method: "POST", body: JSON.stringify({ status }) });
@@ -43,6 +45,17 @@ export default function RightRail({ data, reload, can }: { data: any; reload: ()
 
   return (
     <div className="stack" style={{ position: "sticky", top: 90 }}>
+      {related.length > 0 && (
+        <div className="card pad">
+          <div className="f" style={{ marginBottom: 6 }}>Related {related.some((r) => r.duplicate) && <span className="pill" style={{ background: "var(--crimson, #b81616)", color: "var(--bone, #f4f0e7)", marginLeft: 6 }}>possible duplicate</span>}</div>
+          {related.map((r) => (
+            <a key={r.id} href={`/stories/${r.id}`} style={{ display: "block", padding: "6px 0", borderTop: "1px solid var(--line)", textDecoration: "none", color: "inherit" }}>
+              <div style={{ fontSize: 13, fontWeight: r.duplicate ? 700 : 500 }}>{r.headline}</div>
+              <div className="muted" style={{ fontSize: 11 }}>{r.status}{r.shared && r.shared.length ? " \u00b7 " + r.shared.slice(0, 4).join(", ") : ""}{r.duplicate ? " \u00b7 check before publishing" : ""}</div>
+            </a>
+          ))}
+        </div>
+      )}
       {can("publish.toNews") && (
         <div className="card pad">
           <div className="mini" style={{ marginBottom: 10 }}>PUBLISH</div>

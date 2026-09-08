@@ -102,6 +102,8 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
   const [err, setErr] = useState("");
 
   const [tpl, setTpl] = useState("blank");
+  const [similar, setSimilar] = useState<any[]>([]);
+  useEffect(() => { const q = headline.trim(); if (q.length < 6) { setSimilar([]); return; } const t = setTimeout(() => { api<{ matches: any[] }>("/api/stories/similar?q=" + encodeURIComponent(q)).then((d) => setSimilar(d.matches || [])).catch(() => {}); }, 350); return () => clearTimeout(t); }, [headline]);
   async function create() {
     if (!headline.trim()) { setErr("A working headline is required."); return; }
     setBusy(true);
@@ -129,7 +131,13 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
           </div>
           <div className="muted" style={{ fontSize: 12, marginTop: -6, marginBottom: 12 }}>{(STORY_TEMPLATES.find((t) => t.id === tpl) || STORY_TEMPLATES[0]).blurb} Templates seed the structure; you write the story.</div>
           <label className="f">Working headline</label>
-          <input className="in" value={headline} onChange={(e) => setHeadline(e.target.value)} autoFocus style={{ marginBottom: 14 }} />
+          <input className="in" value={headline} onChange={(e) => setHeadline(e.target.value)} autoFocus style={{ marginBottom: similar.length ? 6 : 14 }} />
+          {similar.length > 0 && (
+            <div style={{ marginBottom: 14, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", background: "rgba(200,162,74,0.08)" }}>
+              <div className="f" style={{ marginBottom: 4 }}>{similar.some((m) => m.duplicate) ? "This may already exist" : "Similar stories"}</div>
+              {similar.map((m) => <a key={m.id} href={`/stories/${m.id}`} style={{ display: "block", fontSize: 12.5, padding: "3px 0", textDecoration: "none", color: "inherit", fontWeight: m.duplicate ? 700 : 400 }}>{m.headline} <span className="muted">\u00b7 {m.status}</span></a>)}
+            </div>
+          )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
             <div>
               <label className="f">Classification</label>
