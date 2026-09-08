@@ -15,6 +15,15 @@ function StoriesInner() {
   const { can } = useMe();
   const statusFilter = params.get("status") || "";
   const [stories, setStories] = useState<any[]>([]);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const toggleSel = (id: string) => setSel((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  async function bulkStatus(status: string) {
+    if (!sel.size || !status) return;
+    if (status === "archived" && !window.confirm(`Archive ${sel.size} stor${sel.size === 1 ? "y" : "ies"}?`)) return;
+    setBulkBusy(true);
+    try { for (const id of Array.from(sel)) { try { await api(`/api/stories/${id}/status`, { method: "POST", body: JSON.stringify({ status }) }); } catch {} } setSel(new Set()); await load(); } finally { setBulkBusy(false); }
+  }
   const [q, setQ] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -58,14 +67,27 @@ function StoriesInner() {
           <div className="pad muted tiny">Loading…</div>
         ) : stories.length === 0 ? (
           <div className="pad muted tiny">No stories match. {can("story.create") && "Create one to begin."}</div>
-        ) : (
+        ) : (<>
+          {sel.size > 0 && (
+            <div className="card pad" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10, borderLeft: "4px solid var(--gold, #c8a24a)" }}>
+              <strong>{sel.size} selected</strong>
+              <select className="in" style={{ width: 220 }} defaultValue="" disabled={bulkBusy} onChange={(e) => { const v = e.target.value; e.target.value = ""; bulkStatus(v); }}>
+                <option value="">Move to status…</option>
+                {STORY_LIFECYCLE.filter((x) => x.id !== "published").map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+              </select>
+              <button className="btn" disabled={bulkBusy} onClick={() => bulkStatus("archived")}>Archive</button>
+              <button className="btn" onClick={() => setSel(new Set())}>Clear</button>
+              <span className="muted" style={{ fontSize: 12 }}>Publishing stays one-at-a-time through review; bulk moves never publish.</span>
+            </div>
+          )}
           <div className="table-wrap"><table className="grid-t">
             <thead>
-              <tr><th>Headline</th><th>Class</th><th>Status</th><th>Priority</th><th>Deadline</th><th>Review</th><th>Updated</th></tr>
+              <tr><th style={{ width: 28 }}><input type="checkbox" aria-label="Select all" checked={stories.length > 0 && sel.size === stories.length} onChange={(e) => setSel(e.target.checked ? new Set(stories.map((x) => x.id)) : new Set())} /></th><th>Headline</th><th>Class</th><th>Status</th><th>Priority</th><th>Deadline</th><th>Review</th><th>Updated</th></tr>
             </thead>
             <tbody>
               {stories.map((s) => (
-                <tr key={s.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/stories/${s.id}`)}>
+                <tr key={s.id} style={{ cursor: "pointer", background: sel.has(s.id) ? "rgba(200,162,74,0.10)" : undefined }} onClick={() => router.push(`/stories/${s.id}`)}>
+                  <td onClick={(e) => { e.stopPropagation(); toggleSel(s.id); }} style={{ width: 28 }}><input type="checkbox" checked={sel.has(s.id)} onChange={() => toggleSel(s.id)} onClick={(e) => e.stopPropagation()} aria-label="Select" /></td>
                   <td style={{ fontWeight: 600, maxWidth: 340 }}>
                     {s.final_headline || s.working_headline}
                     {Array.isArray(s.flags) && s.flags.length > 0 && (
@@ -84,7 +106,7 @@ function StoriesInner() {
               ))}
             </tbody>
           </table></div>
-        )}
+        </>)}
       </div>
 
       {creating && <CreateModal onClose={() => setCreating(false)} onCreated={(id) => router.push(`/stories/${id}`)} />}
