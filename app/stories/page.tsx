@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Shell from "@/components/Shell";
+import { STORY_TEMPLATES } from "@/lib/templates";
 import { api, useMe } from "@/lib/client";
 import { STORY_LIFECYCLE, CLASSIFICATIONS, CATEGORIES, PRIORITIES } from "@/lib/newsroom";
 import { DeadlineBadge, ReviewBadge, PriorityPill, StatusChip, ClassChip } from "@/components/ui";
@@ -100,13 +101,14 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
+  const [tpl, setTpl] = useState("blank");
   async function create() {
     if (!headline.trim()) { setErr("A working headline is required."); return; }
     setBusy(true);
     try {
       const r = await api<{ id: string }>("/api/stories", {
         method: "POST",
-        body: JSON.stringify({ workingHeadline: headline, classification, category, priority, location }),
+        body: JSON.stringify({ workingHeadline: headline, classification, category, priority, location, summary: (STORY_TEMPLATES.find((t) => t.id === tpl) || STORY_TEMPLATES[0]).summary, body: (STORY_TEMPLATES.find((t) => t.id === tpl) || STORY_TEMPLATES[0]).body }),
       });
       onCreated(r.id);
     } catch (e: any) {
@@ -120,6 +122,12 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
       <div className="modal card" onClick={(e) => e.stopPropagation()}>
         <div className="pad">
           <div className="disp" style={{ fontSize: 22, fontWeight: 700, marginBottom: 16 }}>New story</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
+            {STORY_TEMPLATES.map((t) => (
+              <button key={t.id} type="button" className={"btn" + (tpl === t.id ? " primary" : "")} title={t.blurb} onClick={() => { setTpl(t.id); setClassification(t.classification); setPriority(t.priority); }} style={{ fontSize: 12 }}>{t.label}</button>
+            ))}
+          </div>
+          <div className="muted" style={{ fontSize: 12, marginTop: -6, marginBottom: 12 }}>{(STORY_TEMPLATES.find((t) => t.id === tpl) || STORY_TEMPLATES[0]).blurb} Templates seed the structure; you write the story.</div>
           <label className="f">Working headline</label>
           <input className="in" value={headline} onChange={(e) => setHeadline(e.target.value)} autoFocus style={{ marginBottom: 14 }} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>

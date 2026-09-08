@@ -49,9 +49,10 @@ export async function POST(request: Request) {
   const status = String(body.status || "tip");
   const location = String(body.location || "");
   const summary = String(body.summary || "");
+  const storyBody = String(body.body || "");
 
-  await sql`INSERT INTO stories (id, slug, working_headline, summary, classification, category, location, priority, status, created_by, reporter_email)
-    VALUES (${id}, ${slug}, ${workingHeadline}, ${summary}, ${classification}, ${category}, ${location}, ${priority}, ${status}, ${account.email}, ${account.email})`;
+  await sql`INSERT INTO stories (id, slug, working_headline, summary, classification, category, location, priority, status, created_by, reporter_email, body)
+    VALUES (${id}, ${slug}, ${workingHeadline}, ${summary}, ${classification}, ${category}, ${location}, ${priority}, ${status}, ${account.email}, ${account.email}, ${storyBody})`;
 
   // Seed an empty review checklist so the review view always has a row to work with.
   const emptyItems: Record<string, boolean> = {};
