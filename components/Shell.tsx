@@ -7,7 +7,7 @@ import { useMe, api } from "@/lib/client";
 import type { Capability } from "@/lib/permissions";
 import {
   LayoutDashboard, FileText, Inbox, ScrollText, ShieldCheck,
-  Users, ClipboardList, Radio, Menu, LogOut, Image as ImageIcon, Sparkles, Newspaper, BookOpen, Bell, BarChart3,, CalendarDays } from "lucide-react";
+  Users, ClipboardList, Radio, Menu, LogOut, Image as ImageIcon, Sparkles, Newspaper, BookOpen, Bell, BarChart3, CalendarDays } from "lucide-react";
 
 interface NavItem {
   href: string;
