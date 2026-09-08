@@ -5,7 +5,7 @@ import Link from "next/link";
 import Shell from "@/components/Shell";
 import { api } from "@/lib/client";
 import { STORY_LIFECYCLE } from "@/lib/newsroom";
-import { ReviewBadge, PriorityPill } from "@/components/ui";
+import { ReviewBadge, PriorityPill, DeadlineBadge, deadlineState } from "@/components/ui";
 
 export default function Dashboard() {
   const [stories, setStories] = useState<any[]>([]);
@@ -45,6 +45,7 @@ export default function Dashboard() {
             <Stat label="New tips" value={tips.length} href="/tips" accent={tips.length > 0} />
             <Stat label="Awaiting publish" value={readyish.length} href="/review" />
             <Stat label="Published" value={byStatus("published")} href="/stories?status=published" />
+            <Stat label="Overdue" value={stories.filter((s) => deadlineState(s.deadline, s.status) === "overdue").length} href="/stories" />
           </div>
 
           <div className="card pad" style={{ marginBottom: 20 }}>
@@ -74,7 +75,7 @@ export default function Dashboard() {
             ) : (
               <div className="table-wrap"><table className="grid-t">
                 <thead>
-                  <tr><th>Headline</th><th>Status</th><th>Priority</th><th>Review</th></tr>
+                  <tr><th>Headline</th><th>Status</th><th>Priority</th><th>Deadline</th><th>Review</th></tr>
                 </thead>
                 <tbody>
                   {recent.map((s) => (
@@ -82,6 +83,7 @@ export default function Dashboard() {
                       <td style={{ fontWeight: 600 }}>{s.final_headline || s.working_headline}</td>
                       <td><span className="chip">{STORY_LIFECYCLE.find((x) => x.id === s.status)?.label || s.status}</span></td>
                       <td><PriorityPill priority={s.priority} /></td>
+                      <td><DeadlineBadge deadline={s.deadline} status={s.status} /></td>
                       <td><ReviewBadge state={s.review_state} /></td>
                     </tr>
                   ))}

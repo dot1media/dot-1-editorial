@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Shell from "@/components/Shell";
 import { api, useMe } from "@/lib/client";
 import { STORY_LIFECYCLE, CLASSIFICATIONS, CATEGORIES, PRIORITIES } from "@/lib/newsroom";
-import { ReviewBadge, PriorityPill, StatusChip, ClassChip } from "@/components/ui";
+import { DeadlineBadge, ReviewBadge, PriorityPill, StatusChip, ClassChip } from "@/components/ui";
 import { Plus } from "lucide-react";
 
 function StoriesInner() {
@@ -60,7 +60,7 @@ function StoriesInner() {
         ) : (
           <div className="table-wrap"><table className="grid-t">
             <thead>
-              <tr><th>Headline</th><th>Class</th><th>Status</th><th>Priority</th><th>Review</th><th>Updated</th></tr>
+              <tr><th>Headline</th><th>Class</th><th>Status</th><th>Priority</th><th>Deadline</th><th>Review</th><th>Updated</th></tr>
             </thead>
             <tbody>
               {stories.map((s) => (
@@ -76,6 +76,7 @@ function StoriesInner() {
                   <td><ClassChip classification={s.classification} /></td>
                   <td><StatusChip status={s.status} /></td>
                   <td><PriorityPill priority={s.priority} /></td>
+                  <td><DeadlineBadge deadline={s.deadline} status={s.status} /></td>
                   <td><ReviewBadge state={s.review_state} /></td>
                   <td className="tiny muted">{new Date(s.updated_at).toLocaleDateString()}</td>
                 </tr>

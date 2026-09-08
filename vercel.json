@@ -3,13 +3,20 @@
     {
       "path": "/api/cron/generate",
       "schedule": "0 */3 * * *"
+    },
+    {
+      "path": "/api/cron/publish-scheduled",
+      "schedule": "*/15 * * * *"
     }
   ],
   "headers": [
     {
       "source": "/broadcast/(.*)\\.html",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
       ]
     }
   ]

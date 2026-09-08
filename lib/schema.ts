@@ -310,6 +310,7 @@ export async function ensureSchema(): Promise<void> {
   // writes 'ai' with the source item it was generated from, so the newsroom can see where a draft
   // came from and dedupe against feeds.
   await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS origin TEXT NOT NULL DEFAULT 'human'`;
+  await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS deadline TIMESTAMPTZ`;
   await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS source_url TEXT DEFAULT ''`;
   await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS source_name TEXT DEFAULT ''`;
   await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS ai_model TEXT DEFAULT ''`;

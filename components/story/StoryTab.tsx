@@ -5,6 +5,14 @@ import { api, uploadFile, downscaleImage } from "@/lib/client";
 import { CLASSIFICATIONS, CATEGORIES, PRIORITIES } from "@/lib/newsroom";
 import type { Capability } from "@/lib/permissions";
 
+function toLocalInput(v: any): string {
+  if (!v) return "";
+  const d = new Date(v); if (isNaN(d.getTime())) return "";
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+const fromLocalInput = (v: string) => (v ? new Date(v).toISOString() : null);
+
 export default function StoryTab({ data, reload, can }: { data: any; reload: () => void; can: (c: Capability) => boolean }) {
   const s = data.story;
   const editable = can("story.edit");
@@ -20,6 +28,8 @@ export default function StoryTab({ data, reload, can }: { data: any; reload: () 
     heroImage: s.hero_image || "",
     heroImageCredit: s.hero_image_credit || "",
     whyPublish: s.why_publish || "",
+    deadline: toLocalInput(s.deadline),
+    plannedPublishAt: toLocalInput(s.planned_publish_at),
   });
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -45,7 +55,7 @@ export default function StoryTab({ data, reload, can }: { data: any; reload: () 
   async function save() {
     setBusy(true);
     try {
-      await api(`/api/stories/${s.id}`, { method: "PATCH", body: JSON.stringify(f) });
+      await api(`/api/stories/${s.id}`, { method: "PATCH", body: JSON.stringify({ ...f, deadline: fromLocalInput(f.deadline), plannedPublishAt: fromLocalInput(f.plannedPublishAt) }) });
       setSaved(true);
       reload();
     } finally {
@@ -82,6 +92,18 @@ export default function StoryTab({ data, reload, can }: { data: any; reload: () 
             <select className="in" value={f.priority} disabled={!editable} onChange={(e) => set("priority", e.target.value)}>
               {PRIORITIES.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
             </select>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label className="f">Deadline</label>
+            <input className="in" type="datetime-local" value={f.deadline} disabled={!editable} onChange={(e) => set("deadline", e.target.value)} />
+            <div className="hint" style={{ fontSize: 11, opacity: 0.75, marginTop: 4 }}>Shown as due-soon within 24 hours and overdue after. Clear to remove.</div>
+          </div>
+          <div>
+            <label className="f">Schedule publish</label>
+            <input className="in" type="datetime-local" value={f.plannedPublishAt} disabled={!editable} onChange={(e) => set("plannedPublishAt", e.target.value)} />
+            <div className="hint" style={{ fontSize: 11, opacity: 0.75, marginTop: 4 }}>Publishes automatically at this time if the story is Ready to Publish. Otherwise it waits for an editor.</div>
           </div>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

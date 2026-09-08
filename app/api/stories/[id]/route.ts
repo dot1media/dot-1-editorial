@@ -47,6 +47,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const s = (k: string): string => (b[k] == null ? "" : String(b[k]));
   const slug = has("slug") ? slugify(s("slug")) : "";
   const planned = has("plannedPublishAt") ? (b.plannedPublishAt || null) : null;
+  const deadline = has("deadline") ? (b.deadline || null) : null;
 
   await sql`UPDATE stories SET
     working_headline = CASE WHEN ${has("workingHeadline")} THEN ${s("workingHeadline")} ELSE working_headline END,
@@ -62,6 +63,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     why_publish      = CASE WHEN ${has("whyPublish")}      THEN ${s("whyPublish")}      ELSE why_publish END,
     slug             = CASE WHEN ${has("slug")}            THEN ${slug}                 ELSE slug END,
     planned_publish_at = CASE WHEN ${has("plannedPublishAt")} THEN ${planned} ELSE planned_publish_at END,
+    deadline = CASE WHEN ${has("deadline")} THEN ${deadline} ELSE deadline END,
     updated_at = now()
     WHERE id = ${id}`;
 
