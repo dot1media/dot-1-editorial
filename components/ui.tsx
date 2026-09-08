@@ -120,3 +120,12 @@ export function ScoreProfile({ scores }: { scores: any }) {
     </div>
   );
 }
+
+export const RELIABILITY_LABEL = ["", "Unreliable", "Use with caution", "Generally reliable", "Reliable", "Highly reliable"];
+export function Stars({ value, onChange }: { value: number | null; onChange?: (n: number | null) => void }) {
+  return (
+    <span style={{ display: "inline-flex", gap: 2 }} title={value ? RELIABILITY_LABEL[value] : "Not yet rated"}>
+      {[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" disabled={!onChange} onClick={() => onChange && onChange(value === n ? null : n)} style={{ background: "none", border: "none", padding: 0, cursor: onChange ? "pointer" : "default", color: value && n <= value ? "var(--gold, #c8a24a)" : "var(--line)", fontSize: 16, lineHeight: 1 }}>&#9733;</button>)}
+    </span>
+  );
+}

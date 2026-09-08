@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api } from "@/lib/client";
 import { SOURCE_TYPES, SOURCE_TYPE_LABELS, ATTRIBUTIONS, RESPONSE_STATES } from "@/lib/newsroom";
 import type { Capability } from "@/lib/permissions";
 import { Plus, Trash2 } from "lucide-react";
+import { Stars } from "@/components/ui";
+const srcKey = (n: string, o: string) => String(n || "").trim().toLowerCase().replace(/\s+/g, " ") + "|" + String(o || "").trim().toLowerCase().replace(/\s+/g, " ");
 
 const BLANK = { name: "", organization: "", title: "", contact: "", sourceType: "interview", attribution: "on_record", responseStatus: "pending", notes: "", reliabilityNotes: "" };
 
 export default function SourcesTab({ data, reload, can }: { data: any; reload: () => void; can: (c: Capability) => boolean }) {
+  const [registry, setRegistry] = useState<Record<string, any>>({});
+  useEffect(() => { api<{ sources: any[] }>("/api/sources").then((d) => { const m: Record<string, any> = {}; for (const x of d.sources || []) m[x.key] = x; setRegistry(m); }).catch(() => {}); }, []);
   const manage = can("sources.manage");
   const [adding, setAdding] = useState(false);
   const [f, setF] = useState({ ...BLANK });
@@ -33,7 +37,7 @@ export default function SourcesTab({ data, reload, can }: { data: any; reload: (
         <div key={src.id} className="card pad">
           <div className="row-between">
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>{src.name || "(unnamed)"}{src.title && <span className="muted" style={{ fontWeight: 400 }}> · {src.title}</span>}</div>
+              <div style={{ fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>{src.name || "(unnamed)"}{src.title && <span className="muted" style={{ fontWeight: 400 }}> · {src.title}</span>}{(() => { const g = registry[srcKey(src.name, src.organization)]; return g && (g.reliability || g.storyCount > 1) ? <span className="muted" style={{ fontWeight: 400, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}><Stars value={g.reliability} /> {g.storyCount} stor{g.storyCount === 1 ? "y" : "ies"}</span> : null; })()}</div>
               {src.organization && <div className="tiny muted">{src.organization}</div>}
             </div>
             {manage && <button className="btn ghost sm" onClick={() => del(src.id)}><Trash2 size={13} /></button>}
