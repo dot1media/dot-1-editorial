@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 // Cross-story source registry: reliability and notes keyed by normalized name (+ organization).
 const norm = (s: string) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
 async function ensure() { await sql`CREATE TABLE IF NOT EXISTS source_registry (key TEXT PRIMARY KEY, name TEXT NOT NULL, organization TEXT DEFAULT '', reliability INT, notes TEXT DEFAULT '', updated_by TEXT DEFAULT '', updated_at TIMESTAMPTZ DEFAULT now())`; }
-export const sourceKey = (name: string, org: string) => norm(name) + "|" + norm(org);
+const sourceKey = (name: string, org: string) => norm(name) + "|" + norm(org);
 export async function GET() {
   const gate = await requireCapability("story.view"); if ("response" in gate) return gate.response;
   await ensureSchema(); await ensure();
