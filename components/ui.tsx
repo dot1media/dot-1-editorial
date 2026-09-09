@@ -53,13 +53,13 @@ export function deadlineState(deadline: any, status: string): "overdue" | "soon"
 }
 export function DeadlineBadge({ deadline, status }: { deadline: any; status: string }) {
   const st = deadlineState(deadline, status);
-  if (st === "none") return <span style={{ opacity: 0.4 }}>\u2014</span>;
+  if (st === "none") return <span style={{ opacity: 0.4 }}>–</span>;
   const d = new Date(deadline);
   const label = d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const style = st === "overdue" ? { background: "var(--crimson, #b81616)", color: "var(--bone, #f4f0e7)" }
     : st === "soon" ? { background: "var(--gold, #c8a24a)", color: "var(--ink, #141210)" }
     : { background: "transparent", color: "inherit", border: "1px solid var(--line)" };
-  return <span className="pill" style={style} title={st === "overdue" ? "Past deadline" : st === "soon" ? "Due within 24 hours" : "Deadline"}>{st === "overdue" ? "Overdue \u00b7 " : st === "soon" ? "Due soon \u00b7 " : ""}{label}</span>;
+  return <span className="pill" style={style} title={st === "overdue" ? "Past deadline" : st === "soon" ? "Due within 24 hours" : "Deadline"}>{st === "overdue" ? "Overdue · " : st === "soon" ? "Due soon · " : ""}{label}</span>;
 }
 
 export function StatusChip({ status }: { status: string }) {

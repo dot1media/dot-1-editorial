@@ -56,7 +56,7 @@ export default function DigestPage() {
           {inRange.length === 0 ? <div className="muted" style={{ fontSize: 13 }}>No published stories in this range.</div> : inRange.map((s) => (
             <label key={s.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0", borderTop: "1px solid var(--line)", cursor: "pointer" }}>
               <input type="checkbox" checked={picked.has(s.id)} onChange={() => setPicked((p) => { const n = new Set(p); n.has(s.id) ? n.delete(s.id) : n.add(s.id); return n; })} style={{ marginTop: 3 }} />
-              <div><div style={{ fontWeight: 600 }}>{s.final_headline || s.working_headline}</div><div className="muted" style={{ fontSize: 12 }}>{String(s.published_at).slice(0, 10)}{!s.news_story_id && " \u00b7 no news-site link"}</div></div>
+              <div><div style={{ fontWeight: 600 }}>{s.final_headline || s.working_headline}</div><div className="muted" style={{ fontSize: 12 }}>{String(s.published_at).slice(0, 10)}{!s.news_story_id && " · no news-site link"}</div></div>
             </label>
           ))}
         </div>

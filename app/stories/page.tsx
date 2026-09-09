@@ -157,7 +157,7 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
           {similar.length > 0 && (
             <div style={{ marginBottom: 14, padding: "8px 10px", borderRadius: 8, border: "1px solid var(--line)", background: "rgba(200,162,74,0.08)" }}>
               <div className="f" style={{ marginBottom: 4 }}>{similar.some((m) => m.duplicate) ? "This may already exist" : "Similar stories"}</div>
-              {similar.map((m) => <a key={m.id} href={`/stories/${m.id}`} style={{ display: "block", fontSize: 12.5, padding: "3px 0", textDecoration: "none", color: "inherit", fontWeight: m.duplicate ? 700 : 400 }}>{m.headline} <span className="muted">\u00b7 {m.status}</span></a>)}
+              {similar.map((m) => <a key={m.id} href={`/stories/${m.id}`} style={{ display: "block", fontSize: 12.5, padding: "3px 0", textDecoration: "none", color: "inherit", fontWeight: m.duplicate ? 700 : 400 }}>{m.headline} <span className="muted">· {m.status}</span></a>)}
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>

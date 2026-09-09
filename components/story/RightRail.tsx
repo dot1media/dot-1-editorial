@@ -51,7 +51,7 @@ export default function RightRail({ data, reload, can }: { data: any; reload: ()
           {related.map((r) => (
             <a key={r.id} href={`/stories/${r.id}`} style={{ display: "block", padding: "6px 0", borderTop: "1px solid var(--line)", textDecoration: "none", color: "inherit" }}>
               <div style={{ fontSize: 13, fontWeight: r.duplicate ? 700 : 500 }}>{r.headline}</div>
-              <div className="muted" style={{ fontSize: 11 }}>{r.status}{r.shared && r.shared.length ? " \u00b7 " + r.shared.slice(0, 4).join(", ") : ""}{r.duplicate ? " \u00b7 check before publishing" : ""}</div>
+              <div className="muted" style={{ fontSize: 11 }}>{r.status}{r.shared && r.shared.length ? " · " + r.shared.slice(0, 4).join(", ") : ""}{r.duplicate ? " · check before publishing" : ""}</div>
             </a>
           ))}
         </div>

@@ -68,7 +68,7 @@ export default function CalendarPage() {
               <div key={k} style={{ minHeight: 84, borderRadius: 8, border: `1px solid ${isToday ? "var(--gold, #c8a24a)" : "var(--line)"}`, padding: 6, display: "flex", flexDirection: "column", gap: 4, background: isToday ? "rgba(200,162,74,0.08)" : "transparent" }}>
                 <div style={{ fontSize: 12, fontWeight: isToday ? 700 : 500, opacity: 0.85 }}>{d.getDate()}</div>
                 {list.slice(0, 4).map((it, j) => (
-                  <Link key={it.id + it.kind + j} href={`/stories/${it.id}`} title={`${COLORS[it.kind].label} \u00b7 ${it.at.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} \u00b7 ${it.title}`} style={{ fontSize: 11, lineHeight: 1.25, padding: "3px 6px", borderRadius: 5, background: COLORS[it.kind].bg, color: COLORS[it.kind].fg, border: COLORS[it.kind].bg === "transparent" ? "1px solid var(--line)" : "none", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{it.title}</Link>
+                  <Link key={it.id + it.kind + j} href={`/stories/${it.id}`} title={`${COLORS[it.kind].label} · ${it.at.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} · ${it.title}`} style={{ fontSize: 11, lineHeight: 1.25, padding: "3px 6px", borderRadius: 5, background: COLORS[it.kind].bg, color: COLORS[it.kind].fg, border: COLORS[it.kind].bg === "transparent" ? "1px solid var(--line)" : "none", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>{it.title}</Link>
                 ))}
                 {list.length > 4 && <div style={{ fontSize: 10.5, opacity: 0.6 }}>+{list.length - 4} more</div>}
               </div>
