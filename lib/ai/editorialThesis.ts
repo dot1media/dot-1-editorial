@@ -27,7 +27,7 @@ export const EDITORIAL_THESIS = {
   // (toward the inflammatory, the tribal, the empty-urgent); we practice
   // CONVERSION — a turning TOWARD what is true, dignifying, and revelatory.
   paradigm:
-    'Every story turns the reader\u2019s attention somewhere. We refuse diversion ' +
+    'Every story turns the reader’s attention somewhere. We refuse diversion ' +
     '(turning attention away, toward outrage and fear) and practice conversion ' +
     '(turning attention toward what is true, dignifying, and revelatory). We do ' +
     'not chase the eye; we turn it toward the light.',
@@ -86,7 +86,7 @@ export const SENSATIONAL_SIGNALS = [
   'slams', 'slammed', 'blasts', 'destroys', 'obliterates', 'shocking', 'shock',
   'horror', 'terrifying', 'chaos', 'meltdown', 'explosive', 'bombshell', 'savage',
   'brutal', 'nightmare', 'outrage', 'fury', 'furious', 'rips', 'eviscerates',
-  'you won\u2019t believe', 'jaw-dropping', 'stunning', 'sends shockwaves',
+  'you won’t believe', 'jaw-dropping', 'stunning', 'sends shockwaves',
 ];
 
 export function headlineSensationScore(title: string): number {

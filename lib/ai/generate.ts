@@ -69,9 +69,9 @@ export function humanizeProse(input: string): string {
   t = t.replace(/(^|[^\w*])\*([^*\n]+)\*(?=[^\w*]|$)/g, '$1$2'); // *italic*
   t = t.replace(/(^|[^\w_])_([^_\n]+)_(?=[^\w_]|$)/g, '$1$2');     // _italic_
   t = t.replace(/^\s{0,3}#{1,6}\s+/gm, '');          // # headers
-  t = t.replace(/^\s*[*\u2022]\s+/gm, '');           // bullet markers
+  t = t.replace(/^\s*[*•]\s+/gm, '');           // bullet markers
   t = t.replace(/\*/g, '');                           // any stray asterisk
-  t = t.replace(/\s*[\u2014\u2013\u2015]\s*/g, ', '); // em/en/horizontal dash -> comma
+  t = t.replace(/\s*[—–\u2015]\s*/g, ', '); // em/en/horizontal dash -> comma
   t = t.replace(/,\s*,/g, ',');
   t = t.replace(/\s+,/g, ',');
   t = t.replace(/[ \t]{2,}/g, ' ');

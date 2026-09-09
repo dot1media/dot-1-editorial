@@ -25,7 +25,7 @@ export default function SourcesPage() {
             {list.map((r) => (
               <tr key={r.key}>
                 <td style={{ fontWeight: 600 }}>{r.name}{r.offRecord > 0 && <span className="muted" style={{ fontSize: 11, marginLeft: 6 }}>{r.offRecord} off-record</span>}</td>
-                <td className="muted">{r.organization || "\u2014"}</td>
+                <td className="muted">{r.organization || "—"}</td>
                 <td>{r.storyCount}</td>
                 <td className="muted" style={{ fontSize: 12 }}>{(r.types || []).join(", ")}</td>
                 <td><Stars value={r.reliability} onChange={editable ? (n) => rate(r, n) : undefined} /> <span className="muted" style={{ fontSize: 11 }}>{r.reliability ? LABEL[r.reliability] : "unrated"}</span></td>

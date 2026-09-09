@@ -124,7 +124,7 @@ function ClipsPanel({ clips }: { clips: any[] }) {
             {clips.map((c: any) => (
               <tr key={c.id}>
                 <td style={{ fontWeight: 600 }}><Film size={13} style={{ opacity: 0.5, marginRight: 7, verticalAlign: "middle" }} />{c.title || "Untitled clip"}{c.mime === "link" ? <span className="chip dim" style={{ marginLeft: 8 }}>embed</span> : null}</td>
-                <td className="tiny muted">{c.credit || "\u2014"}</td>
+                <td className="tiny muted">{c.credit || "—"}</td>
                 <td className="tiny">{c.story_id ? <Link href={`/stories/${c.story_id}`} style={{ color: "var(--gold)" }}>Open story</Link> : <span className="muted">Library</span>}</td>
                 <td><a href={c.blob_url} target="_blank" rel="noopener noreferrer" className="btn ghost sm">Open clip</a></td>
               </tr>
