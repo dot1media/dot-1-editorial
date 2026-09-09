@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { ensureSchema, audit } from "@/lib/schema";
 import { requireCapability } from "@/lib/session";
 import { readJson, slugify } from "@/lib/api";
+import { snapshotIfChanging } from "@/lib/revisions";
 
 export const runtime = "nodejs";
 
@@ -48,6 +49,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const slug = has("slug") ? slugify(s("slug")) : "";
   const planned = has("plannedPublishAt") ? (b.plannedPublishAt || null) : null;
   const deadline = has("deadline") ? (b.deadline || null) : null;
+  await snapshotIfChanging(id, b, account.email);
 
   await sql`UPDATE stories SET
     working_headline = CASE WHEN ${has("workingHeadline")} THEN ${s("workingHeadline")} ELSE working_headline END,

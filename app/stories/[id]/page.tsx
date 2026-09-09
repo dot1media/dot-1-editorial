@@ -15,6 +15,7 @@ import ScoreTab from "@/components/story/ScoreTab";
 import ReviewTab from "@/components/story/ReviewTab";
 import CorrectionsTab from "@/components/story/CorrectionsTab";
 import DiscussionTab from "@/components/story/DiscussionTab";
+import HistoryTab from "@/components/story/HistoryTab";
 import MediaTab from "@/components/story/MediaTab";
 import RightRail from "@/components/story/RightRail";
 
@@ -54,6 +55,7 @@ export default function StoryWorkspace() {
     { id: "review", label: "Review", n: `${prog.done}/${prog.total}` },
     { id: "corrections", label: "Corrections", n: data.corrections.length },
     { id: "discussion", label: "Discussion" },
+    { id: "history", label: "History" },
   ];
 
   return (
@@ -92,6 +94,7 @@ export default function StoryWorkspace() {
           {tab === "review" && <ReviewTab data={data} reload={load} can={can} />}
           {tab === "corrections" && <CorrectionsTab data={data} reload={load} can={can} />}
           {tab === "discussion" && <DiscussionTab data={data} reload={load} can={can} />}
+          {tab === "history" && <HistoryTab data={data} reload={load} can={can} />}
         </div>
 
         <RightRail data={data} reload={load} can={can} />
