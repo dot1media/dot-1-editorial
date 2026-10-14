@@ -19,9 +19,35 @@ export async function POST(request: Request) {
   await ensureSchema();
 
   const ctype = request.headers.get("content-type") || "";
-  // Link a real clip by URL: embed an official, attributed video instead of re-uploading footage.
   if (ctype.includes("application/json")) {
     const body: any = await request.json().catch(() => ({}));
+
+    // Register a file the browser uploaded directly to Blob (the large-video path). The bytes are
+    // already in storage; we just record the asset row.
+    if (body.blobUrl) {
+      const blobUrl = String(body.blobUrl).trim();
+      if (!/^https?:\/\//i.test(blobUrl)) {
+        return NextResponse.json({ error: "Invalid upload URL." }, { status: 400 });
+      }
+      const mime = String(body.mime || "");
+      const isImg = IMAGE_MIME.includes(mime);
+      const isVid = VIDEO_MIME.includes(mime);
+      if (!isImg && !isVid) {
+        return NextResponse.json({ error: "Unsupported file type. Use JPEG, PNG, WebP, MP4, WebM, or MOV." }, { status: 400 });
+      }
+      const kind = isImg ? "image" : "video";
+      const fileName = String(body.fileName || "upload").slice(0, 300);
+      const size = Number(body.size) || null;
+      const story = body.story ? String(body.story) : null;
+      const id = newId("media");
+      await sql`INSERT INTO media_assets (id, kind, blob_url, thumb_url, file_name, mime, size_bytes, story_id, status, uploaded_by)
+        VALUES (${id}, ${kind}, ${blobUrl}, ${isImg ? blobUrl : ""}, ${fileName}, ${mime}, ${size}, ${story}, 'library', ${account.email})`;
+      await audit(account.email, "media.upload", "media", id, { kind, storyId: story, direct: true });
+      const rows = await sql`SELECT * FROM media_assets WHERE id = ${id} LIMIT 1`;
+      return NextResponse.json({ ok: true, asset: rows[0] });
+    }
+
+    // Link a real clip by URL: embed an official, attributed video instead of re-uploading footage.
     const linkUrl = String(body.url || "").trim();
     if (!/^https?:\/\//i.test(linkUrl)) {
       return NextResponse.json({ error: "Provide a valid https video URL." }, { status: 400 });
