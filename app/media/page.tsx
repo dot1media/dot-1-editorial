@@ -8,43 +8,62 @@ import MediaCard from "@/components/MediaCard";
 
 export default function MediaLibraryPage() {
   const { can } = useMe();
-  const [assets, setAssets] = useState<any[]>([]);
-  const [filter, setFilter] = useState<"all" | "image" | "video">("all");
+  const [videos, setVideos] = useState<any[]>([]);
+  const [photos, setPhotos] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   async function load() {
-    const qs = filter === "all" ? "" : `?kind=${filter}`;
-    const d = await api<{ assets: any[] }>(`/api/media${qs}`);
-    setAssets(d.assets || []);
+    const [v, p] = await Promise.all([
+      api<{ assets: any[] }>(`/api/media?kind=video`),
+      api<{ assets: any[] }>(`/api/media?kind=image`),
+    ]);
+    setVideos(v.assets || []);
+    setPhotos(p.assets || []);
     setLoaded(true);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [filter]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  const mayUpload = can("media.upload");
 
   return (
-    <Shell title="Media" subtitle="Images and video for the newsroom. Upload, describe, publish.">
-      {can("media.upload") && (
-        <div style={{ marginBottom: 18 }}>
-          <MediaUploader onUploaded={() => load()} />
-        </div>
-      )}
+    <Shell title="Media" subtitle="Video and photojournalism for the newsroom. Upload, describe, publish.">
+      {/* ---------- Video ---------- */}
+      <section style={{ marginBottom: 34 }}>
+        <h2 className="mono" style={{ fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 12 }}>Video uploads</h2>
+        {mayUpload && (
+          <div style={{ marginBottom: 16 }}>
+            <MediaUploader only="video" label="Drop a video or click to upload" onUploaded={() => load()} />
+          </div>
+        )}
+        {!loaded ? (
+          <span className="mono muted tiny">Loading…</span>
+        ) : videos.length === 0 ? (
+          <div className="card pad muted tiny">No video yet. Upload a clip to begin — its audio is kept with the file.</div>
+        ) : (
+          <div className="stack">
+            {videos.map((a) => <MediaCard key={a.id} asset={a} reload={load} can={can} />)}
+          </div>
+        )}
+      </section>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        {(["all", "image", "video"] as const).map((k) => (
-          <button key={k} className={"btn sm " + (filter === k ? "gold" : "ghost")} onClick={() => setFilter(k)}>
-            {k === "all" ? "All" : k === "image" ? "Images" : "Video"}
-          </button>
-        ))}
-      </div>
-
-      {!loaded ? (
-        <span className="mono muted tiny">Loading…</span>
-      ) : assets.length === 0 ? (
-        <div className="card pad muted tiny">No media yet. Upload something to begin.</div>
-      ) : (
-        <div className="stack">
-          {assets.map((a) => <MediaCard key={a.id} asset={a} reload={load} can={can} />)}
-        </div>
-      )}
+      {/* ---------- Photojournalism ---------- */}
+      <section>
+        <h2 className="mono" style={{ fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 12 }}>Photojournalism uploads</h2>
+        {mayUpload && (
+          <div style={{ marginBottom: 16 }}>
+            <MediaUploader only="image" label="Drop a photo or click to upload" onUploaded={() => load()} />
+          </div>
+        )}
+        {!loaded ? (
+          <span className="mono muted tiny">Loading…</span>
+        ) : photos.length === 0 ? (
+          <div className="card pad muted tiny">No photos yet. Upload an image to begin.</div>
+        ) : (
+          <div className="stack">
+            {photos.map((a) => <MediaCard key={a.id} asset={a} reload={load} can={can} />)}
+          </div>
+        )}
+      </section>
     </Shell>
   );
 }

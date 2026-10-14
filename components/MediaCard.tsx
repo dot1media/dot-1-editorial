@@ -60,7 +60,7 @@ export default function MediaCard({ asset, reload, can, onDetach }: { asset: any
           {isImage ? (
             <img src={asset.blob_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
-            <video src={asset.blob_url} controls style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            <video src={asset.blob_url} controls playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
           )}
         </div>
         <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>

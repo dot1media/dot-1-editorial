@@ -8,13 +8,17 @@ import { IMAGE_MIME, VIDEO_MIME, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES } from "@/lib/
 // Uploads the file straight from the browser to Vercel Blob (via a short-lived token from
 // /api/media/blob), then registers the finished asset with POST /api/media. This bypasses the ~4.5 MB
 // serverless request-body cap that made video uploads fail when the file was streamed through the API.
-export default function MediaUploader({ storyId, onUploaded }: { storyId?: string; onUploaded: (asset: any) => void }) {
+export default function MediaUploader({ storyId, onUploaded, only, label }: { storyId?: string; onUploaded: (asset: any) => void; only?: "image" | "video"; label?: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
-  const accept = [...IMAGE_MIME, ...VIDEO_MIME].join(",");
+  // Restrict the picker and validation to one media kind when `only` is set (so a Video section won't
+  // take photos, and a Photojournalism section won't take video).
+  const allowImage = only !== "video";
+  const allowVideo = only !== "image";
+  const accept = [...(allowImage ? IMAGE_MIME : []), ...(allowVideo ? VIDEO_MIME : [])].join(",");
 
   function pick() { inputRef.current?.click(); }
 
@@ -26,6 +30,8 @@ export default function MediaUploader({ storyId, onUploaded }: { storyId?: strin
       setErr("Unsupported type. Use JPEG, PNG, WebP, MP4, WebM, or MOV.");
       return;
     }
+    if (only === "video" && !isVideo) { setErr("This is the video section — choose an MP4, WebM, or MOV."); return; }
+    if (only === "image" && !isImage) { setErr("This is the photo section — choose a JPEG, PNG, or WebP."); return; }
     const cap = isImage ? MAX_IMAGE_BYTES : MAX_VIDEO_BYTES;
     if (file.size > cap) {
       setErr(`File is too large. Limit is ${Math.round(cap / 1024 / 1024)} MB for ${isImage ? "images" : "video"}.`);
@@ -76,9 +82,13 @@ export default function MediaUploader({ storyId, onUploaded }: { storyId?: strin
         }}
       >
         <Upload size={22} color="var(--gold)" style={{ marginBottom: 8 }} />
-        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{busy ? "Uploading…" : "Drop a file or click to upload"}</div>
+        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{busy ? "Uploading…" : (label || "Drop a file or click to upload")}</div>
         <div className="tiny muted" style={{ marginTop: 4 }}>
-          {busy ? "Large videos can take a few minutes — keep this tab open." : "Images up to 25 MB, video up to 500 MB"}
+          {busy
+            ? "Large videos can take a few minutes — keep this tab open."
+            : only === "video" ? "MP4, WebM, or MOV — up to 500 MB. Sound is kept with the clip."
+            : only === "image" ? "JPEG, PNG, or WebP — up to 25 MB."
+            : "Images up to 25 MB, video up to 500 MB"}
         </div>
         {busy && (
           <div style={{ marginTop: 12, height: 5, background: "rgba(244,240,231,.1)", borderRadius: 3, overflow: "hidden" }}>
