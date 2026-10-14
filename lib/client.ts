@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { upload } from "@vercel/blob/client";
 import type { Capability } from "@/lib/permissions";
 
 export interface Me {
@@ -50,18 +51,19 @@ export function useMe() {
   return { me, loading, can, refresh };
 }
 
-// Upload a File to blob storage via the streaming endpoint, returning its public URL. The file is
-// sent as the raw request body with its content type, matching the /api/upload route.
+// Upload a File straight from the browser to Vercel Blob (via a short-lived token from
+// /api/media/blob) and return its public URL. Going direct avoids the ~4.5 MB serverless
+// request-body cap that made the old streaming /api/upload route fail for larger images.
 export async function uploadFile(file: File, kind: string): Promise<string> {
-  const res = await fetch(`/api/upload?kind=${encodeURIComponent(kind)}&name=${encodeURIComponent(file.name)}`, {
-    method: "POST",
-    headers: { "Content-Type": file.type || "application/octet-stream" },
-    body: file,
-    credentials: "include",
+  const ext = file.name.includes(".") ? file.name.split(".").pop() : "bin";
+  const pathname = `${kind}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const blob = await upload(pathname, file, {
+    access: "public",
+    handleUploadUrl: "/api/media/blob",
+    contentType: file.type || "application/octet-stream",
+    multipart: file.size > 8 * 1024 * 1024,
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || "Upload failed");
-  return data.url as string;
+  return blob.url;
 }
 
 // Downscale an image File in the browser before upload, so photos stay reasonable in size. Returns
