@@ -88,7 +88,9 @@ export default function PublishedPage() {
           {items.map((m) => (
             <div key={m.id} className="card" style={{ overflow: "hidden" }}>
               <div style={{ aspectRatio: "16/10", background: "#0002", overflow: "hidden" }}>
-                <img src={tab === "videos" ? m.thumbnail : m.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                {tab === "videos" && !/\.(jpe?g|png|webp|gif|avif)(\?|#|$)/i.test(m.thumbnail || "")
+                  ? <video src={`${m.video_url || m.thumbnail}#t=2`} muted playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  : <img src={tab === "videos" ? m.thumbnail : m.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
               </div>
               <div className="pad" style={{ padding: 12 }}>
                 <div style={{ fontWeight: 600, fontSize: 13 }}>{tab === "videos" ? m.title : (m.caption || "Untitled")}</div>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import { api } from "@/lib/client";
 import { PHOTO_CATEGORIES, PHOTO_STYLES, VIDEO_CATEGORIES, VIDEO_STYLES } from "@/lib/newsroom";
 import type { Capability } from "@/lib/permissions";
-import { Trash2, Send, Check } from "lucide-react";
+import { Trash2, Send, Check, ImageIcon } from "lucide-react";
 
 // A single media asset: preview, editable metadata, and publish. Used in the library and the
 // story Media tab. Category/style options switch by kind to match the news vocabularies.
@@ -21,6 +22,26 @@ export default function MediaCard({ asset, reload, can, onDetach }: { asset: any
   const [err, setErr] = useState("");
   const [copied, setCopied] = useState(false);
   const editable = can("media.upload");
+  const [thumb, setThumb] = useState<string>(asset.thumb_url && asset.thumb_url !== asset.blob_url ? asset.thumb_url : "");
+  const [thumbBusy, setThumbBusy] = useState(false);
+  const [thumbNote, setThumbNote] = useState("");
+  const thumbInput = useRef<HTMLInputElement>(null);
+
+  // Choose the still image that represents this video on the site, in the app, and in social previews.
+  async function setThumbnail(file: File) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { setErr("Thumbnail must be a JPEG, PNG, or WebP image."); return; }
+    setThumbBusy(true); setErr(""); setThumbNote("");
+    try {
+      const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+      const b = await upload(`media/thumb/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`, file, {
+        access: "public", handleUploadUrl: "/api/media/blob", contentType: file.type,
+      });
+      await api(`/api/media/${asset.id}`, { method: "PATCH", body: JSON.stringify({ thumbUrl: b.url }) });
+      setThumb(b.url);
+      setThumbNote(published ? "Thumbnail saved. Press Re-publish to news to update the live site." : "Thumbnail saved.");
+      reload();
+    } catch (e: any) { setErr(e?.message || "Could not upload the thumbnail."); } finally { setThumbBusy(false); }
+  }
 
   // Public, social-shareable page for a published video on the news site.
   const shareUrl = asset.news_id ? `https://news.dot1.media/v/${encodeURIComponent(asset.news_id)}` : "";
@@ -51,9 +72,13 @@ export default function MediaCard({ asset, reload, can, onDetach }: { asset: any
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
   }
   async function remove() {
-    if (!confirm("Delete this media permanently?")) return;
-    await api(`/api/media/${asset.id}`, { method: "DELETE" });
-    reload();
+    const msg = published
+      ? "Delete this media permanently? It is live, so it will also be removed from news.dot1.media and the app."
+      : "Delete this media permanently?";
+    if (!confirm(msg)) return;
+    setErr("");
+    try { await api(`/api/media/${asset.id}`, { method: "DELETE" }); reload(); }
+    catch (e: any) { setErr(e?.message || "Could not delete."); }
   }
   async function detach() {
     await api(`/api/media/${asset.id}`, { method: "PATCH", body: JSON.stringify({ storyId: null }) });
@@ -69,9 +94,20 @@ export default function MediaCard({ asset, reload, can, onDetach }: { asset: any
           {isImage ? (
             <img src={asset.blob_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
-            <video src={asset.blob_url} controls playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            <video src={asset.blob_url} poster={thumb || undefined} controls playsInline preload="metadata" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
           )}
         </div>
+        {!isImage && editable && (
+          <div style={{ marginTop: 8 }}>
+            <button className="btn ghost sm" onClick={() => thumbInput.current?.click()} disabled={thumbBusy} style={{ width: "100%" }}>
+              <ImageIcon size={12} /> {thumbBusy ? "Uploading…" : thumb ? "Change thumbnail" : "Set thumbnail"}
+            </button>
+            <input ref={thumbInput} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) setThumbnail(f); e.target.value = ""; }} />
+            {!thumb && <div className="tiny muted" style={{ marginTop: 4 }}>No thumbnail yet. The site will show a frame from the video.</div>}
+            {thumbNote && <div className="tiny" style={{ marginTop: 4, color: "#8fd6a8" }}>{thumbNote}</div>}
+          </div>
+        )}
         <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
           <span className="chip">{asset.kind}</span>
           {published ? <span className="chip ok">published</span> : <span className="chip dim">library</span>}

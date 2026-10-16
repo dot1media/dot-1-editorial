@@ -8,6 +8,32 @@ import { IMAGE_MIME, VIDEO_MIME, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES } from "@/lib/
 // Uploads the file straight from the browser to Vercel Blob (via a short-lived token from
 // /api/media/blob), then registers the finished asset with POST /api/media. This bypasses the ~4.5 MB
 // serverless request-body cap that made video uploads fail when the file was streamed through the API.
+// Grab a still frame from a local video file (in the browser, before upload) to use as its
+// thumbnail, and read its length. Returns nulls if the browser can't decode the format (some MOVs).
+async function probeVideo(file: File): Promise<{ thumb: Blob | null; duration: number | null }> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement("video");
+    let done = false;
+    const finish = (thumb: Blob | null, duration: number | null) => {
+      if (done) return; done = true;
+      URL.revokeObjectURL(url); resolve({ thumb, duration });
+    };
+    const timer = setTimeout(() => finish(null, Number.isFinite(v.duration) ? Math.round(v.duration) : null), 12000);
+    v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = url;
+    v.onloadedmetadata = () => { v.currentTime = Math.min(3, (v.duration || 6) / 3); };
+    v.onseeked = () => {
+      try {
+        const w = 1280, h = Math.round(w * (v.videoHeight || 720) / (v.videoWidth || 1280));
+        const c = document.createElement("canvas"); c.width = w; c.height = h;
+        c.getContext("2d")!.drawImage(v, 0, 0, w, h);
+        c.toBlob((b) => { clearTimeout(timer); finish(b, Math.round(v.duration) || null); }, "image/jpeg", 0.86);
+      } catch { clearTimeout(timer); finish(null, Math.round(v.duration) || null); }
+    };
+    v.onerror = () => { clearTimeout(timer); finish(null, null); };
+  });
+}
+
 export default function MediaUploader({ storyId, onUploaded, only, label }: { storyId?: string; onUploaded: (asset: any) => void; only?: "image" | "video"; label?: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
@@ -52,11 +78,27 @@ export default function MediaUploader({ storyId, onUploaded, only, label }: { st
         multipart: file.size > 8 * 1024 * 1024,
       });
 
+      // 1b) For video, upload a still frame as its thumbnail (best effort; skipped if it can't decode).
+      let thumbUrl = "";
+      let durationSeconds: number | null = null;
+      if (isVideo) {
+        try {
+          const probe = await probeVideo(file);
+          durationSeconds = probe.duration;
+          if (probe.thumb) {
+            const t = await upload(`media/thumb/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`, probe.thumb, {
+              access: "public", handleUploadUrl: "/api/media/blob", contentType: "image/jpeg",
+            });
+            thumbUrl = t.url;
+          }
+        } catch { /* a missing thumbnail never blocks the upload */ }
+      }
+
       // 2) Record the asset so it shows in the library and can be attached/published.
       const res = await fetch("/api/media", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ blobUrl: blob.url, fileName: file.name, mime: file.type, size: file.size, story: storyId || null }),
+        body: JSON.stringify({ blobUrl: blob.url, fileName: file.name, mime: file.type, size: file.size, story: storyId || null, thumbUrl, durationSeconds }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setErr(data.error || "Could not save the upload."); return; }
@@ -86,9 +128,9 @@ export default function MediaUploader({ storyId, onUploaded, only, label }: { st
         <div className="tiny muted" style={{ marginTop: 4 }}>
           {busy
             ? "Large videos can take a few minutes — keep this tab open."
-            : only === "video" ? "MP4, WebM, or MOV — up to 500 MB. Sound is kept with the clip."
+            : only === "video" ? "MP4 works best on the web (WebM and MOV also accepted), up to 2 GB. Sound is kept with the clip."
             : only === "image" ? "JPEG, PNG, or WebP — up to 25 MB."
-            : "Images up to 25 MB, video up to 500 MB"}
+            : "Images up to 25 MB, video up to 2 GB"}
         </div>
         {busy && (
           <div style={{ marginTop: 12, height: 5, background: "rgba(244,240,231,.1)", borderRadius: 3, overflow: "hidden" }}>

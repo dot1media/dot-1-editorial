@@ -151,4 +151,4 @@ export const VIDEO_STYLES = ["documentary", "cinematic", "interview", "vlog", "a
 export const IMAGE_MIME = ["image/jpeg", "image/png", "image/webp"];
 export const VIDEO_MIME = ["video/mp4", "video/webm", "video/quicktime"];
 export const MAX_IMAGE_BYTES = 25 * 1024 * 1024; // 25 MB
-export const MAX_VIDEO_BYTES = 500 * 1024 * 1024; // 500 MB
+export const MAX_VIDEO_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB (uploads go straight to Blob in parts)

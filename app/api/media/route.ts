@@ -40,8 +40,12 @@ export async function POST(request: Request) {
       const size = Number(body.size) || null;
       const story = body.story ? String(body.story) : null;
       const id = newId("media");
-      await sql`INSERT INTO media_assets (id, kind, blob_url, thumb_url, file_name, mime, size_bytes, story_id, status, uploaded_by)
-        VALUES (${id}, ${kind}, ${blobUrl}, ${isImg ? blobUrl : ""}, ${fileName}, ${mime}, ${size}, ${story}, 'library', ${account.email})`;
+      const thumbIn = String(body.thumbUrl || "").trim();
+      const thumbUrl = isImg ? blobUrl : (/^https?:\/\//i.test(thumbIn) ? thumbIn : "");
+      const dur = Number(body.durationSeconds);
+      const durationSeconds = !isImg && Number.isFinite(dur) && dur > 0 ? Math.round(dur) : null;
+      await sql`INSERT INTO media_assets (id, kind, blob_url, thumb_url, file_name, mime, size_bytes, story_id, status, uploaded_by, duration_seconds)
+        VALUES (${id}, ${kind}, ${blobUrl}, ${thumbUrl}, ${fileName}, ${mime}, ${size}, ${story}, 'library', ${account.email}, ${durationSeconds})`;
       await audit(account.email, "media.upload", "media", id, { kind, storyId: story, direct: true });
       const rows = await sql`SELECT * FROM media_assets WHERE id = ${id} LIMIT 1`;
       return NextResponse.json({ ok: true, asset: rows[0] });
