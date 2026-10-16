@@ -9,6 +9,20 @@ import { Trash2, Send, Check, ImageIcon } from "lucide-react";
 
 // A single media asset: preview, editable metadata, and publish. Used in the library and the
 // story Media tab. Category/style options switch by kind to match the news vocabularies.
+// Resize an image in the browser to at most 1920px wide and re-encode as JPEG (about 0.3 to 1 MB).
+async function shrinkImage(file: File): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const w = Math.min(1920, img.naturalWidth || 1920);
+    const h = Math.round(w * (img.naturalHeight || 1080) / (img.naturalWidth || 1920));
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const ctx = c.getContext("2d")!; ctx.fillStyle = "#141210"; ctx.fillRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h);
+    const out = await new Promise<Blob | null>((res) => c.toBlob(res, "image/jpeg", 0.86));
+    return out || file;
+  } finally { URL.revokeObjectURL(url); }
+}
+
 export default function MediaCard({ asset, reload, can, onDetach }: { asset: any; reload: () => void; can: (c: Capability) => boolean; onDetach?: () => void }) {
   const isImage = asset.kind === "image";
   const [f, setF] = useState({
@@ -32,9 +46,10 @@ export default function MediaCard({ asset, reload, can, onDetach }: { asset: any
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) { setErr("Thumbnail must be a JPEG, PNG, or WebP image."); return; }
     setThumbBusy(true); setErr(""); setThumbNote("");
     try {
-      const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-      const b = await upload(`media/thumb/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`, file, {
-        access: "public", handleUploadUrl: "/api/media/blob", contentType: file.type,
+      // Shrink to a web-friendly JPEG (max 1920 wide) so it stays well under Facebook's 8 MB limit.
+      const small = await shrinkImage(file);
+      const b = await upload(`media/thumb/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`, small, {
+        access: "public", handleUploadUrl: "/api/media/blob", contentType: "image/jpeg",
       });
       await api(`/api/media/${asset.id}`, { method: "PATCH", body: JSON.stringify({ thumbUrl: b.url }) });
       setThumb(b.url);
