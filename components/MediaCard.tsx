@@ -19,7 +19,16 @@ export default function MediaCard({ asset, reload, can, onDetach }: { asset: any
   const [published, setPublished] = useState(asset.status === "published");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [copied, setCopied] = useState(false);
   const editable = can("media.upload");
+
+  // Public, social-shareable page for a published video on the news site.
+  const shareUrl = asset.news_id ? `https://news.dot1.media/s/v/${encodeURIComponent(asset.news_id)}` : "";
+  async function copyShare() {
+    if (!shareUrl) return;
+    try { await navigator.clipboard.writeText(shareUrl); } catch { /* ignore */ }
+    setCopied(true); setTimeout(() => setCopied(false), 1800);
+  }
 
   const cats = isImage ? PHOTO_CATEGORIES : VIDEO_CATEGORIES;
   const styles = isImage ? PHOTO_STYLES : VIDEO_STYLES;
@@ -104,6 +113,19 @@ export default function MediaCard({ asset, reload, can, onDetach }: { asset: any
           {onDetach && <button className="btn ghost sm" onClick={detach}>Detach from story</button>}
           {editable && <button className="btn ghost sm" onClick={remove} style={{ marginLeft: "auto" }}><Trash2 size={13} /></button>}
         </div>
+
+        {!isImage && published && shareUrl && (
+          <div style={{ borderTop: "1px solid var(--line)", marginTop: 4, paddingTop: 10 }}>
+            <div className="tiny muted" style={{ marginBottom: 6 }}>Share this video — plays on news.dot1.media and unfurls with a preview on social.</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <input className="in" readOnly value={shareUrl} onFocus={(e) => e.currentTarget.select()} style={{ flex: "1 1 240px", minWidth: 0, fontSize: 12.5 }} />
+              <button className="btn ghost sm" onClick={copyShare}>{copied ? "Copied" : "Copy link"}</button>
+              <a className="btn ghost sm" href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(f.title || "")}`} target="_blank" rel="noreferrer">X</a>
+              <a className="btn ghost sm" href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} target="_blank" rel="noreferrer">Facebook</a>
+              <a className="btn ghost sm" href={shareUrl} target="_blank" rel="noreferrer">Open page</a>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
