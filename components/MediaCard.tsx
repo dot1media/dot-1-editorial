@@ -23,7 +23,7 @@ export default function MediaCard({ asset, reload, can, onDetach }: { asset: any
   const editable = can("media.upload");
 
   // Public, social-shareable page for a published video on the news site.
-  const shareUrl = asset.news_id ? `https://news.dot1.media/s/v/${encodeURIComponent(asset.news_id)}` : "";
+  const shareUrl = asset.news_id ? `https://news.dot1.media/v/${encodeURIComponent(asset.news_id)}` : "";
   async function copyShare() {
     if (!shareUrl) return;
     try { await navigator.clipboard.writeText(shareUrl); } catch { /* ignore */ }

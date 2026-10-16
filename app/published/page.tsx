@@ -37,6 +37,13 @@ export default function PublishedPage() {
   const canEdit = can("story.edit");
   const canDelArticle = can("story.delete");
   const canDelMedia = can("media.publish");
+  const [copiedId, setCopiedId] = useState("");
+
+  const videoShareUrl = (id: string) => `https://news.dot1.media/v/${encodeURIComponent(id)}`;
+  async function copyShare(id: string) {
+    try { await navigator.clipboard.writeText(videoShareUrl(id)); } catch { /* ignore */ }
+    setCopiedId(id); setTimeout(() => setCopiedId((c) => (c === id ? "" : c)), 1800);
+  }
 
   return (
     <Shell title="Published" subtitle="Everything live on the news site. Edit or remove past articles, photos, and videos.">
@@ -86,8 +93,15 @@ export default function PublishedPage() {
               <div className="pad" style={{ padding: 12 }}>
                 <div style={{ fontWeight: 600, fontSize: 13 }}>{tab === "videos" ? m.title : (m.caption || "Untitled")}</div>
                 <div className="tiny muted" style={{ marginTop: 2 }}>{m.category || ""}{m.published_at ? " · " + new Date(m.published_at).toLocaleDateString() : ""}</div>
-                <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-                  <a className="btn ghost sm" href={tab === "videos" ? m.video_url : m.image} target="_blank" rel="noreferrer"><ExternalLink size={12} /> Open</a>
+                <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                  {tab === "videos" ? (
+                    <>
+                      <a className="btn ghost sm" href={videoShareUrl(m.id)} target="_blank" rel="noreferrer"><ExternalLink size={12} /> Share page</a>
+                      <button className="btn ghost sm" onClick={() => copyShare(m.id)}>{copiedId === m.id ? "Copied" : "Copy link"}</button>
+                    </>
+                  ) : (
+                    <a className="btn ghost sm" href={m.image} target="_blank" rel="noreferrer"><ExternalLink size={12} /> Open</a>
+                  )}
                   {canDelMedia && <button className="btn ghost sm" style={{ color: "#e88" }} onClick={() => del(tab === "videos" ? "video" : "photo", m.id, tab === "videos" ? m.title : (m.caption || "media"))}><Trash2 size={12} /></button>}
                 </div>
               </div>
