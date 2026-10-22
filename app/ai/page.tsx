@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Shell from "@/components/Shell";
 import { api, useMe } from "@/lib/client";
-import { Sparkles, RefreshCw, ExternalLink } from "lucide-react";
+import { CATEGORIES } from "@/lib/newsroom";
+import { Sparkles, RefreshCw, ExternalLink, Youtube } from "lucide-react";
 
 export default function AiDeskPage() {
   const { can } = useMe();
@@ -15,6 +16,12 @@ export default function AiDeskPage() {
   const [max, setMax] = useState(3);
   const [result, setResult] = useState<any>(null);
   const [err, setErr] = useState("");
+
+  // Create a story from a pasted YouTube video.
+  const [ytUrl, setYtUrl] = useState("");
+  const [ytCat, setYtCat] = useState<string>("world");
+  const [ytBusy, setYtBusy] = useState(false);
+  const [ytErr, setYtErr] = useState("");
 
   async function load() {
     const d = await api<{ drafts: any[] }>("/api/ai/drafts");
@@ -33,6 +40,20 @@ export default function AiDeskPage() {
     finally { setRunning(false); }
   }
 
+  async function createFromYouTube() {
+    const url = ytUrl.trim();
+    if (!url) { setYtErr("Paste a YouTube link first."); return; }
+    setYtBusy(true); setYtErr("");
+    try {
+      const r = await api<{ draft: { id: string; headline: string } }>("/api/ai/youtube", {
+        method: "POST", body: JSON.stringify({ url, category: ytCat }),
+      });
+      setYtUrl("");
+      router.push(`/stories/${r.draft.id}`); // open the new draft to review
+    } catch (e: any) { setYtErr(e.message || "Could not create a story from that video."); }
+    finally { setYtBusy(false); }
+  }
+
   return (
     <Shell title="AI Desk" subtitle="Generate drafts from the wire. Each lands as a story to verify, rate, and publish."
       actions={can("story.create") ? (
@@ -44,6 +65,36 @@ export default function AiDeskPage() {
           </button>
         </div>
       ) : undefined}>
+
+      {can("story.create") && (
+        <div className="card pad" style={{ marginBottom: 14 }}>
+          <div className="mini" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 7 }}>
+            <Youtube size={14} style={{ color: "#b81616" }} /> FROM A YOUTUBE VIDEO
+          </div>
+          <div className="tiny muted" style={{ marginBottom: 10 }}>
+            Paste a video link. The desk reads its title, description, and transcript, then writes and scores a draft grounded in what the video actually says. It lands below to verify, rate, and publish.
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              className="in"
+              placeholder="https://www.youtube.com/watch?v=…  or  https://youtu.be/…"
+              value={ytUrl}
+              onChange={(e) => setYtUrl(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !ytBusy) createFromYouTube(); }}
+              disabled={ytBusy}
+              style={{ flex: "1 1 320px", minWidth: 0 }}
+            />
+            <select className="in" value={ytCat} onChange={(e) => setYtCat(e.target.value)} disabled={ytBusy} style={{ width: 150 }}>
+              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <button className="btn primary" onClick={createFromYouTube} disabled={ytBusy}>
+              {ytBusy ? <><RefreshCw size={15} className="spin" /> Writing…</> : <><Youtube size={15} /> Create story</>}
+            </button>
+          </div>
+          {ytBusy && <div className="tiny muted" style={{ marginTop: 10 }}>Reading the video and writing the brief. This can take up to a minute.</div>}
+          {ytErr && <div className="tiny" style={{ marginTop: 10, color: "#ffb4b4" }}>{ytErr}</div>}
+        </div>
+      )}
 
       {running && <div className="card pad tiny muted" style={{ marginBottom: 14 }}>Pulling the wire and writing drafts. This can take a minute or two; each story is a two-pass write and score.</div>}
       {err && <div className="card pad" style={{ marginBottom: 14, color: "#ffb4b4" }}>{err}</div>}

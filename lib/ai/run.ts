@@ -1,9 +1,12 @@
 import { sql } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { newId } from "@/lib/api";
-import { getFeeds, type FeedSource } from "@/lib/ai/sources";
+import { getFeeds, type FeedSource, type NewsCategory } from "@/lib/ai/sources";
 import { fetchFeed, type FeedItem } from "@/lib/ai/rss";
 import { generateArticle, type GeneratedArticle } from "@/lib/ai/generate";
+import { youTubeToSourceItem } from "@/lib/ai/youtube";
+
+const NEWS_CATEGORIES: NewsCategory[] = ["world", "politics", "faith", "culture", "technology", "health", "business", "environment"];
 
 // The AI desk, in the portal. It pulls candidates from the RSS sources, skips anything already
 // seen, generates a draft with the two-pass writer+scorer, and lands each as an editorial STORY
@@ -58,6 +61,24 @@ async function insertDraft(article: GeneratedArticle, item: FeedItem, source: Fe
     VALUES (${newId("rate")}, ${id}, ${"ai"}, ${"ai-scorer"}, ${"AI scorer"}, ${JSON.stringify(article.indicators)}::jsonb, ${article.scoringNotes || ""})`;
 
   return id;
+}
+
+/**
+ * Create one draft story from a single YouTube video. Same destination as the
+ * wire: a two-pass written+scored story in the verification stage, origin 'ai',
+ * grounded strictly in the video's title, description, and transcript.
+ */
+export async function generateFromYouTube(
+  url: string,
+  category?: string,
+): Promise<{ id: string; headline: string; source: string }> {
+  await ensureSchema();
+  const cat: NewsCategory = NEWS_CATEGORIES.includes(category as NewsCategory) ? (category as NewsCategory) : "world";
+  const { item, source } = await youTubeToSourceItem(url, cat);
+  if (await alreadySeen(item)) throw new Error("A story from this video already exists in the newsroom.");
+  const article = await generateArticle(item, source);
+  const id = await insertDraft(article, item, source);
+  return { id, headline: article.title, source: source.name };
 }
 
 export async function runGeneration(opts: { max?: number } = {}): Promise<GenerateResult> {
