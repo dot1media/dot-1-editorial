@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Shell from "@/components/Shell";
 import { api, useMe } from "@/lib/client";
 import { CATEGORIES } from "@/lib/newsroom";
+import LensReelStudio from "@/components/LensReelStudio";
 import { Sparkles, RefreshCw, ExternalLink, Youtube } from "lucide-react";
 
 export default function AiDeskPage() {
@@ -95,6 +96,8 @@ export default function AiDeskPage() {
           {ytErr && <div className="tiny" style={{ marginTop: 10, color: "#ffb4b4" }}>{ytErr}</div>}
         </div>
       )}
+
+      {can("media.upload") && <LensReelStudio />}
 
       {running && <div className="card pad tiny muted" style={{ marginBottom: 14 }}>Pulling the wire and writing drafts. This can take a minute or two; each story is a two-pass write and score.</div>}
       {err && <div className="card pad" style={{ marginBottom: 14, color: "#ffb4b4" }}>{err}</div>}

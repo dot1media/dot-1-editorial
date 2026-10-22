@@ -114,6 +114,75 @@ export async function publishToNews(
   return { newsStoryId: newsId, totalScore: total };
 }
 
+// ---- Sourced media (AI desk: find/add for the Lens and Reel) ------------------------------------
+// Posts an externally sourced image/video straight into the news app with a creator credit AND a
+// credit link. The credit_url column is added on first use (ADD COLUMN IF NOT EXISTS) so no manual
+// migration is needed in the news database.
+
+let creditColsReady = false;
+async function ensureCreditColumns(): Promise<void> {
+  if (creditColsReady) return;
+  const db = newsSql!;
+  try {
+    await db`ALTER TABLE photos ADD COLUMN IF NOT EXISTS credit_url text`;
+    await db`ALTER TABLE videos ADD COLUMN IF NOT EXISTS credit_url text`;
+    creditColsReady = true;
+  } catch { /* best effort; publish still works without the link column */ }
+}
+
+function imageFormatFromUrl(u: string): string {
+  const s = u.toLowerCase();
+  if (s.includes('.png')) return 'png';
+  if (s.includes('.webp')) return 'webp';
+  if (s.includes('.gif')) return 'gif';
+  return 'jpeg';
+}
+
+export interface SourcedPhotoInput {
+  image: string; caption: string; description?: string; location?: string;
+  photographer: string; creditUrl?: string; category?: string | null; style?: string;
+  width?: number | null; height?: number | null;
+}
+
+export async function publishSourcedPhoto(p: SourcedPhotoInput): Promise<{ newsId: string }> {
+  assertNewsConfigured();
+  await ensureCreditColumns();
+  const db = newsSql!;
+  const now = new Date().toISOString();
+  const newsId = `photo_${crypto.randomBytes(9).toString("base64url")}`;
+  await db`INSERT INTO photos (id, image, caption, full_description, location, photographer, credit_url,
+      image_format, photo_style, category, image_width, image_height, status, date, published_at)
+    VALUES (${newsId}, ${p.image}, ${(p.caption || "Untitled").slice(0, 500)}, ${p.description || ""},
+      ${p.location || "Unknown"}, ${(p.photographer || "Dot 1 News").slice(0, 200)}, ${p.creditUrl || ""},
+      ${imageFormatFromUrl(p.image)}, ${p.style || "documentary"}, ${p.category || null},
+      ${p.width ?? null}, ${p.height ?? null}, 'published', ${now}, ${now})`;
+  return { newsId };
+}
+
+export interface SourcedVideoInput {
+  videoUrl: string; thumbnail?: string; title: string; description?: string;
+  producer: string; creditUrl?: string; category?: string; style?: string;
+  durationSeconds?: number | null;
+}
+
+export async function publishSourcedVideo(v: SourcedVideoInput): Promise<{ newsId: string }> {
+  assertNewsConfigured();
+  await ensureCreditColumns();
+  const db = newsSql!;
+  const now = new Date().toISOString();
+  const newsId = `video_${crypto.randomBytes(9).toString("base64url")}`;
+  const vFormat = v.videoUrl.toLowerCase().includes('.webm') ? 'webm' : 'mp4';
+  const secs = v.durationSeconds ?? null;
+  const duration = fmtDuration(secs);
+  await db`INSERT INTO videos (id, title, description, thumbnail, video_url, duration, duration_seconds,
+      video_format, category, video_style, producer, credit_url, status, date, published_at)
+    VALUES (${newsId}, ${(v.title || "Untitled").slice(0, 300)}, ${v.description || v.title || ""},
+      ${v.thumbnail || ""}, ${v.videoUrl}, ${duration}, ${secs},
+      ${vFormat}, ${v.category || "news-report"}, ${v.style || "documentary"},
+      ${(v.producer || "Dot 1 News").slice(0, 200)}, ${v.creditUrl || ""}, 'published', ${now}, ${now})`;
+  return { newsId };
+}
+
 // Unpublish: archive the news row so it drops out of the reader feed without deleting history.
 export async function unpublishFromNews(newsStoryId: string): Promise<void> {
   assertNewsConfigured();
