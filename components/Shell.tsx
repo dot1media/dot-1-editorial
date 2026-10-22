@@ -78,7 +78,7 @@ export default function Shell({
     <div className="shell">
       <aside className={"side" + (open ? " open" : "")}>
         <div className="brand">
-          <img src="https://news.dot1.media/icon.png" alt="" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
+          <img src="/dot1-news-icon-192.png" alt="Dot 1 News" onError={(e) => ((e.target as HTMLImageElement).style.display = "none")} />
           <div>
             <div className="t disp">Dot 1 News</div>
             <div className="s">EDITORIAL</div>
