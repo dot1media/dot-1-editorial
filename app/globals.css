@@ -58,8 +58,8 @@ input, textarea, select { font-family: inherit; }
   width: 236px; flex: none; background: var(--raised); border-right: 1px solid var(--line);
   display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto;
 }
-.side .brand { padding: 22px 20px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 11px; }
-.side .brand img { height: 34px; width: auto; }
+.side .brand { padding: 22px 20px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 14px; }
+.side .brand img { height: 40px; width: auto; }
 .side .brand .t { font-family: "Bodoni Moda", serif; font-weight: 700; font-size: 18px; line-height: 1; }
 .side .brand .s { font-family: "IBM Plex Mono", monospace; font-size: 8.5px; letter-spacing: 0.2em; color: var(--gold); margin-top: 3px; }
 .nav { padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
