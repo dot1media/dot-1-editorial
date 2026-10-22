@@ -5,9 +5,9 @@
  * the creator's name AND a link to credit them.
  *
  *  - Photos (The Lens): Openverse, CC-licensed / public-domain, keyless.
- *  - Videos (The Reel): Pexels, free to use with attribution, needs
- *    PEXELS_API_KEY. Without the key, video search is unavailable and the
- *    editor can still add a Reel by pasting a hosted video URL with credit.
+ *  - Videos (The Reel): Wikimedia Commons, freely licensed, keyless. Results
+ *    prefer web-safe MP4; some are WebM/OGV (play in Chrome/Firefox, not iOS
+ *    Safari). The editor can always add a Reel by pasting a hosted MP4 URL.
  *
  * Every result includes creditUrl so the photographer/videographer can be
  * linked, not just named.
@@ -72,41 +72,42 @@ export async function searchPhotos(query: string, limit = 12): Promise<MediaCand
   return out;
 }
 
-/** Videos for The Reel — Pexels (needs PEXELS_API_KEY). */
+const stripHtml = (s: any): string => String(s || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+
+/** Videos for The Reel — Wikimedia Commons (keyless), MP4 preferred. */
 export async function searchVideos(query: string, limit = 12): Promise<MediaCandidate[]> {
-  const key = process.env.PEXELS_API_KEY;
-  if (!key) {
-    throw new Error("Video search needs a Pexels API key (PEXELS_API_KEY). You can still add a Reel by pasting a video URL with credit below.");
-  }
   const q = (query || '').trim();
   if (q.length < 2) return [];
-  const url = 'https://api.pexels.com/videos/search?' +
-    new URLSearchParams({ query: q.slice(0, 120), per_page: String(Math.min(limit, 20)), orientation: 'landscape', size: 'medium' }).toString();
-  const data = await getJson(url, 8000, { Authorization: key });
-  const videos: any[] = Array.isArray(data?.videos) ? data.videos : [];
+  const url = 'https://commons.wikimedia.org/w/api.php?' +
+    new URLSearchParams({
+      action: 'query', format: 'json', origin: '*',
+      generator: 'search', gsrsearch: `filetype:video ${q.slice(0, 120)}`,
+      gsrnamespace: '6', gsrlimit: String(Math.min(limit * 2, 30)),
+      prop: 'imageinfo', iiprop: 'url|size|mime|extmetadata', iiurlwidth: '640',
+    }).toString();
+  const data = await getJson(url, 9000, { 'User-Agent': 'Dot1News-ContentPipeline/1.0 (+https://dot1.media)' });
+  const pages: any[] = data?.query?.pages ? Object.values(data.query.pages) : [];
   const out: MediaCandidate[] = [];
-  for (const v of videos) {
-    const files: any[] = Array.isArray(v.video_files) ? v.video_files : [];
-    // Prefer a web-friendly mp4 around 720p.
-    const mp4s = files.filter((f) => (f.file_type || '').includes('mp4'));
-    const pick =
-      mp4s.find((f) => f.height && f.height >= 540 && f.height <= 800) ||
-      mp4s.sort((a, b) => (a.height || 0) - (b.height || 0))[0];
-    if (!pick?.link) continue;
+  for (const p of pages) {
+    const ii = p.imageinfo?.[0];
+    if (!ii?.url) continue;
+    const ext = ii.extmetadata || {};
     out.push({
-      provider: 'pexels',
-      url: String(pick.link),
-      thumbnail: String(v.image || ''),
-      creator: String(v.user?.name || 'Pexels contributor').slice(0, 120),
-      creditUrl: String(v.user?.url || v.url || '').slice(0, 500),
-      license: 'Pexels License',
-      source: 'Pexels',
-      title: String(q).slice(0, 200),
-      width: pick.width || null,
-      height: pick.height || null,
-      durationSeconds: Number.isFinite(v.duration) ? v.duration : null,
+      provider: 'wikimedia',
+      url: String(ii.url),
+      thumbnail: String(ii.thumburl || ''),
+      creator: (stripHtml(ext.Artist?.value) || 'Wikimedia Commons').slice(0, 120),
+      creditUrl: String(ii.descriptionurl || '').slice(0, 500),
+      license: (stripHtml(ext.LicenseShortName?.value) || '').slice(0, 60),
+      source: 'Wikimedia Commons',
+      title: (stripHtml(String(p.title || q).replace(/^File:/, '').replace(/\.[a-z0-9]+$/i, '')) || q).slice(0, 200),
+      width: Number.isFinite(ii.width) ? ii.width : null,
+      height: Number.isFinite(ii.height) ? ii.height : null,
+      durationSeconds: Number.isFinite(ii.duration) ? Math.round(ii.duration) : null,
     });
-    if (out.length >= limit) break;
   }
-  return out;
+  // Web-safe MP4 first, then the rest (WebM/OGV).
+  const isMp4 = (u: string) => /\.mp4($|\?)/i.test(u);
+  out.sort((a, b) => Number(isMp4(b.url)) - Number(isMp4(a.url)));
+  return out.slice(0, limit);
 }
