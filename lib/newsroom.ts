@@ -149,6 +149,9 @@ export const VIDEO_STYLES = ["documentary", "cinematic", "interview", "vlog", "a
 
 // Accepted upload types and the Blob size ceiling we allow from the browser.
 export const IMAGE_MIME = ["image/jpeg", "image/png", "image/webp"];
-export const VIDEO_MIME = ["video/mp4", "video/webm", "video/quicktime"];
+// Web-safe containers only. QuickTime (.mov) is intentionally excluded: it does not
+// play reliably in Chrome/Firefox or on iOS web and often drops audio, so videos must
+// be exported to MP4 (H.264/AAC) before upload.
+export const VIDEO_MIME = ["video/mp4", "video/webm"];
 export const MAX_IMAGE_BYTES = 25 * 1024 * 1024; // 25 MB
 export const MAX_VIDEO_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB (uploads go straight to Blob in parts)

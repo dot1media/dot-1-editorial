@@ -53,10 +53,11 @@ export default function MediaUploader({ storyId, onUploaded, only, label }: { st
     const isImage = IMAGE_MIME.includes(file.type);
     const isVideo = VIDEO_MIME.includes(file.type);
     if (!isImage && !isVideo) {
-      setErr("Unsupported type. Use JPEG, PNG, WebP, MP4, WebM, or MOV.");
+      const movish = /quicktime|\.mov$/i.test(file.type) || /\.mov$/i.test(file.name);
+      setErr(movish ? "QuickTime (.mov) does not play reliably on the web. Export it as MP4 (H.264/AAC) and upload that." : "Unsupported type. Use JPEG, PNG, WebP, MP4, or WebM.");
       return;
     }
-    if (only === "video" && !isVideo) { setErr("This is the video section — choose an MP4, WebM, or MOV."); return; }
+    if (only === "video" && !isVideo) { setErr(/\.mov$/i.test(file.name) ? "Export this .mov as MP4 (H.264/AAC) first — QuickTime does not play on the web." : "This is the video section — choose an MP4 or WebM."); return; }
     if (only === "image" && !isImage) { setErr("This is the photo section — choose a JPEG, PNG, or WebP."); return; }
     const cap = isImage ? MAX_IMAGE_BYTES : MAX_VIDEO_BYTES;
     if (file.size > cap) {
@@ -128,7 +129,7 @@ export default function MediaUploader({ storyId, onUploaded, only, label }: { st
         <div className="tiny muted" style={{ marginTop: 4 }}>
           {busy
             ? "Large videos can take a few minutes — keep this tab open."
-            : only === "video" ? "MP4 works best on the web (WebM and MOV also accepted), up to 2 GB. Sound is kept with the clip."
+            : only === "video" ? "MP4 (H.264/AAC) or WebM, up to 2 GB. Export .mov clips as MP4 first — QuickTime does not play reliably on the web. Sound is kept with the clip."
             : only === "image" ? "JPEG, PNG, or WebP — up to 25 MB."
             : "Images up to 25 MB, video up to 2 GB"}
         </div>
