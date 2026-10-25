@@ -23,6 +23,8 @@ export interface EditorialStoryRow {
   author_name?: string | null;
   reporter_email?: string | null;
   news_story_id?: string | null;
+  verification_status?: string | null;
+  verification_override?: boolean | null;
 }
 
 const CLASSIFICATION_TO_FORMAT: Record<string, string> = {
@@ -54,12 +56,27 @@ function prepare(story: EditorialStoryRow) {
   };
 }
 
+// The verification columns live in the news database too. Add them on first publish
+// (ADD COLUMN IF NOT EXISTS) so a published story always carries its status even if
+// the news-side migration has not been applied by hand.
+let verificationColsReady = false;
+async function ensureVerificationColumns(): Promise<void> {
+  if (verificationColsReady) return;
+  const db = newsSql!;
+  try {
+    await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS verification_status TEXT`;
+    await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS verification_override BOOLEAN NOT NULL DEFAULT false`;
+    verificationColsReady = true;
+  } catch { /* best effort; publish still works, the app defaults missing status to verified */ }
+}
+
 export async function publishToNews(
   story: EditorialStoryRow,
   authorLabel: string,
   opts?: { dualRated?: boolean }
 ): Promise<{ newsStoryId: string; totalScore: number }> {
   assertNewsConfigured();
+  await ensureVerificationColumns();
   const db = newsSql!;
   const p = prepare(story);
   const i = p.ind;
@@ -70,6 +87,13 @@ export async function publishToNews(
   // Provenance the reader app displays: publishing requires editor approval, so every published
   // story is at least "reviewed"; AI stories that cleared the dual-rater are "verified".
   const dualRated = !!opts?.dualRated;
+  // The verification dot the reader sees. Set by the editor in the review workflow; a published
+  // story defaults to verified. When not pinned (override=false) and the story cleared the
+  // dual-rater, it is verified regardless.
+  const vOverride = !!story.verification_override;
+  const vStatus = (!vOverride && dualRated)
+    ? 'verified'
+    : (story.verification_status || 'verified');
 
   if (isUpdate) {
     await db`UPDATE news_stories SET
@@ -87,7 +111,8 @@ export async function publishToNews(
       hii_societal_impact = ${i.hiiSocietalImpact}, hii_justice_responsibility = ${i.hiiJusticeResponsibility},
       hii_christ_modeled_care = ${i.hiiChristModeledCare},
       score_confidence = ${p.confidence}, status = 'published',
-      reviewed_at = COALESCE(reviewed_at, ${now}), is_dual_rated = ${dualRated}, updated_at = now()
+      reviewed_at = COALESCE(reviewed_at, ${now}), is_dual_rated = ${dualRated},
+      verification_status = ${vStatus}, verification_override = ${vOverride}, updated_at = now()
       WHERE id = ${newsId}`;
     return { newsStoryId: newsId, totalScore: total };
   }
@@ -100,7 +125,8 @@ export async function publishToNews(
       psi_textual_linkage, psi_eschatological_fit, psi_historical_continuity, psi_spiritual_impact, psi_theological_restraint,
       sci_primary_source_access, sci_verification, sci_transparency, sci_track_record, sci_editorial_standards,
       hii_human_dignity, hii_compassion_empathy, hii_societal_impact, hii_justice_responsibility, hii_christ_modeled_care,
-      score_confidence, status, date, published_at, reviewed_at, is_dual_rated
+      score_confidence, status, date, published_at, reviewed_at, is_dual_rated,
+      verification_status, verification_override
     ) VALUES (
       ${newsId}, ${p.headline}, ${p.summary}, ${p.content}, ${p.image}, ${p.category}, ${authorLabel}, ${[] as string[]},
       ${p.format}, ${p.wc}, ${p.readMin},
@@ -109,7 +135,8 @@ export async function publishToNews(
       ${i.psiTextualLinkage}, ${i.psiEschatologicalFit}, ${i.psiHistoricalContinuity}, ${i.psiSpiritualImpact}, ${i.psiTheologicalRestraint},
       ${i.sciPrimarySourceAccess}, ${i.sciVerification}, ${i.sciTransparency}, ${i.sciTrackRecord}, ${i.sciEditorialStandards},
       ${i.hiiHumanDignity}, ${i.hiiCompassionEmpathy}, ${i.hiiSocietalImpact}, ${i.hiiJusticeResponsibility}, ${i.hiiChristModeledCare},
-      ${p.confidence}, 'published', ${now}, ${now}, ${now}, ${dualRated}
+      ${p.confidence}, 'published', ${now}, ${now}, ${now}, ${dualRated},
+      ${vStatus}, ${vOverride}
     )`;
   return { newsStoryId: newsId, totalScore: total };
 }

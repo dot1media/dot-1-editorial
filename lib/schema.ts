@@ -316,6 +316,13 @@ export async function ensureSchema(): Promise<void> {
   await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS ai_model TEXT DEFAULT ''`;
   await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS auto_publish BOOLEAN NOT NULL DEFAULT false`;
 
+  // The verification status the reader sees as the gold/orange/red dot, on BOTH the
+  // app and the news website. Publishing a story means an editor approved it, so the
+  // default is 'verified'. An editor can set it directly; 'override' pins it so the
+  // normal review process will not move it.
+  await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS verification_status TEXT NOT NULL DEFAULT 'verified'`;
+  await sql`ALTER TABLE stories ADD COLUMN IF NOT EXISTS verification_override BOOLEAN NOT NULL DEFAULT false`;
+
   // Dual-rater scoring, folded into the review workflow. Each story can carry more than one D1-4LS
   // rating: the AI scorer is the first rater on an AI draft, a human is the second, and a third
   // breaks a divergence. The reconciled result is written back to stories.scores. Ratings are kept

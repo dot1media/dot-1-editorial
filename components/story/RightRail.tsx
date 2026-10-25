@@ -39,6 +39,10 @@ export default function RightRail({ data, reload, can }: { data: any; reload: ()
     await api(`/api/stories/${s.id}/assign`, { method: "POST", body: JSON.stringify({ [key]: value }) });
     reload();
   }
+  async function setVerification(status: string, override: boolean) {
+    await api(`/api/stories/${s.id}/verification`, { method: "POST", body: JSON.stringify({ status, override }) });
+    reload();
+  }
 
   const isPublished = s.status === "published";
   const ready = s.review_state === "ready_to_publish";
@@ -104,6 +108,11 @@ export default function RightRail({ data, reload, can }: { data: any; reload: ()
       </div>
 
       <div className="card pad">
+        <div className="mini" style={{ marginBottom: 10 }}>VERIFICATION</div>
+        <VerificationControl story={s} canEdit={can("story.changeStatus")} isPublished={isPublished} onChange={setVerification} />
+      </div>
+
+      <div className="card pad">
         <div className="mini" style={{ marginBottom: 10 }}>D1-4LS PROFILE</div>
         <ScoreProfile scores={s.scores} />
       </div>
@@ -126,6 +135,84 @@ export default function RightRail({ data, reload, can }: { data: any; reload: ()
       </div>
 
       {pubOpen && <PublishModal story={s} ready={ready} canOverride={can("publish.override")} onClose={() => setPubOpen(false)} onDone={() => { setPubOpen(false); reload(); }} />}
+    </div>
+  );
+}
+
+const V_OPTIONS = [
+  { id: "verified", label: "Verified", color: "#D4AF37", help: "Gold. Checked against its sources; a published story is verified by default." },
+  { id: "pending", label: "Pending", color: "#E08A2B", help: "Orange. A second independent check is still in progress." },
+  { id: "unverified", label: "Unverified", color: "#C8372A", help: "Red. Written from the brief, not yet checked." },
+];
+
+function VerificationControl({ story, canEdit, isPublished, onChange }: { story: any; canEdit: boolean; isPublished: boolean; onChange: (status: string, override: boolean) => Promise<void>; }) {
+  const current = (story.verification_status as string) || "verified";
+  const [status, setStatus] = useState(current);
+  const [override, setOverride] = useState(!!story.verification_override);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+
+  useEffect(() => {
+    setStatus((story.verification_status as string) || "verified");
+    setOverride(!!story.verification_override);
+  }, [story.verification_status, story.verification_override]);
+
+  const active = V_OPTIONS.find((o) => o.id === status) || V_OPTIONS[0];
+
+  async function commit(nextStatus: string, nextOverride: boolean) {
+    setStatus(nextStatus); setOverride(nextOverride);
+    if (!canEdit) return;
+    setBusy(true); setNote("");
+    try {
+      await onChange(nextStatus, nextOverride);
+      setNote(isPublished ? "Updated. Live on news and app." : "Saved. Applies when published.");
+    } catch (e: any) {
+      setNote(e.message || "Could not save.");
+    } finally {
+      setBusy(false);
+      setTimeout(() => setNote(""), 2500);
+    }
+  }
+
+  if (!canEdit) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ width: 10, height: 10, borderRadius: 5, background: active.color, display: "inline-block" }} />
+        <span className="tiny">{active.label}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 6 }}>
+        {V_OPTIONS.map((o) => {
+          const on = status === o.id;
+          return (
+            <button
+              key={o.id}
+              className={"btn sm " + (on ? "primary" : "ghost")}
+              style={{ flex: 1, justifyContent: "center", gap: 6, borderColor: on ? o.color : undefined }}
+              onClick={() => commit(o.id, override)}
+              disabled={busy}
+              title={o.help}
+            >
+              <span style={{ width: 9, height: 9, borderRadius: 5, background: o.color, display: "inline-block" }} />
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 12, cursor: "pointer" }}>
+        <input type="checkbox" checked={override} onChange={(e) => commit(status, e.target.checked)} disabled={busy} style={{ marginTop: 2 }} />
+        <span className="tiny muted" style={{ lineHeight: 1.45 }}>
+          <strong style={{ color: "var(--ink, inherit)" }}>Override</strong> — pin this status. The D1-4LS review process will not change it. Leave off to let the process set it (a cleared dual-rater reads as verified).
+        </span>
+      </label>
+
+      <div className="tiny muted" style={{ marginTop: 10, lineHeight: 1.45 }}>{active.help}</div>
+      {note && <div className="tiny" style={{ marginTop: 8, color: "#8fd6a8" }}>{note}</div>}
     </div>
   );
 }
