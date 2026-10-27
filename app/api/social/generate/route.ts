@@ -39,17 +39,24 @@ export async function POST(req: Request) {
   const created: { id: string; headline: string }[] = [];
   const skipped: string[] = [];
 
+  // Alternate the card style (a/b) so the grid looks varied. Continue the A/B
+  // rhythm from how many posts already exist, so new drafts keep alternating.
+  const [{ cnt }] = (await sql`SELECT COUNT(*)::int AS cnt FROM social_posts`) as any[];
+  let n = Number(cnt) || 0;
+
   for (const s of stories) {
     if (!s.image) { skipped.push(s.id); continue; } // need a photo for the card
     const existing = (await sql`SELECT id FROM social_posts WHERE news_story_id = ${s.id} LIMIT 1`) as any[];
     if (existing.length) { skipped.push(s.id); continue; }
 
+    const style = ["a", "b", "c"][n % 3];
+    n += 1;
     const caps = buildCaptions({ newsStoryId: s.id, title: s.title, summary: s.summary, category: s.category });
     const id = `sp_${crypto.randomBytes(8).toString("base64url")}`;
     await sql`
-      INSERT INTO social_posts (id, news_story_id, headline, summary, category, verification_status, image_url,
+      INSERT INTO social_posts (id, news_story_id, headline, summary, category, verification_status, style, image_url,
         caption_instagram, caption_facebook, targets, status, created_by)
-      VALUES (${id}, ${s.id}, ${s.title}, ${s.summary || ""}, ${s.category || ""}, ${s.verification_status},
+      VALUES (${id}, ${s.id}, ${s.title}, ${s.summary || ""}, ${s.category || ""}, ${s.verification_status}, ${style},
         ${s.image}, ${caps.instagram}, ${caps.facebook}, ${JSON.stringify(["instagram", "facebook"])}, 'draft', ${account.email})
     `;
     created.push({ id, headline: s.title });

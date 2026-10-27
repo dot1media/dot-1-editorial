@@ -10,6 +10,8 @@ type Post = {
   headline: string;
   category: string;
   verification_status: string;
+  style: string;
+  updated_at: string;
   image_url: string;
   caption_instagram: string;
   caption_facebook: string;
@@ -131,10 +133,17 @@ export default function SocialPage() {
               {/* preview */}
               <div style={{ width: 240, flexShrink: 0 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/api/social/card/${p.id}?format=ig_portrait`} alt="" style={{ width: 240, height: 300, objectFit: "cover", borderRadius: 8, border: "1px solid var(--line)" }} />
+                <img src={`/api/social/card/${p.id}?v=${p.updated_at ? new Date(p.updated_at).getTime() : 0}`} alt="" style={{ width: 240, height: 300, objectFit: "cover", borderRadius: 8, border: "1px solid var(--line)" }} />
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
                   <span style={{ width: 9, height: 9, borderRadius: 9, background: STATUS_COLOR[p.status] || "#888" }} />
                   <span className="tiny" style={{ textTransform: "uppercase", letterSpacing: 1, color: STATUS_COLOR[p.status] || "#888", fontWeight: 700 }}>{p.status}</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8 }}>
+                  <span className="tiny muted" style={{ marginRight: 2 }}>Style</span>
+                  {["a", "b", "c"].map((st) => (
+                    <button key={st} className={"btn sm " + ((p.style || "a") === st ? "primary" : "ghost")} style={{ padding: "3px 9px" }}
+                      onClick={() => patch(p.id, { style: st })}>{st.toUpperCase()}</button>
+                  ))}
                 </div>
               </div>
 

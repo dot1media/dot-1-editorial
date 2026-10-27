@@ -349,6 +349,7 @@ export async function ensureSchema(): Promise<void> {
     summary TEXT DEFAULT '',
     category TEXT DEFAULT '',
     verification_status TEXT DEFAULT 'verified',
+    style TEXT DEFAULT 'a',
     image_url TEXT DEFAULT '',
     caption_instagram TEXT DEFAULT '',
     caption_facebook TEXT DEFAULT '',
@@ -365,6 +366,8 @@ export async function ensureSchema(): Promise<void> {
   )`;
   await sql`CREATE INDEX IF NOT EXISTS idx_social_posts_status ON social_posts(status, scheduled_at)`;
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_social_posts_story ON social_posts(news_story_id)`;
+  // Added after first deploy: the card style (a/b), alternated for a varied grid.
+  await sql`ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS style TEXT DEFAULT 'a'`;
 
   ensured = true;
 }

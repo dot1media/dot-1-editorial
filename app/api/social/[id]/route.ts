@@ -31,6 +31,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const t = b.targets.filter((x: string) => TARGETS.has(x));
     await sql`UPDATE social_posts SET targets=${JSON.stringify(t)}, updated_at=now() WHERE id=${id}`;
   }
+  if (typeof b.style === "string" && ["a", "b", "c"].includes(b.style)) {
+    await sql`UPDATE social_posts SET style=${b.style}, updated_at=now() WHERE id=${id}`;
+  }
   if (typeof b.status === "string" && STATUSES.has(b.status)) {
     await sql`UPDATE social_posts SET status=${b.status}, error='', updated_at=now() WHERE id=${id}`;
     await audit(account.email, "social.status", "social", id, { status: b.status });
