@@ -339,6 +339,33 @@ export async function ensureSchema(): Promise<void> {
   )`;
   await sql`CREATE INDEX IF NOT EXISTS idx_story_ratings_story ON story_ratings(story_id, created_at)`;
 
+  // Social posts queue ("Make Dot 1 Seen"): one row per queued social post built
+  // from a published news story. Generated as a draft, reviewed/edited, approved,
+  // then posted to Facebook and Instagram on a spaced cadence.
+  await sql`CREATE TABLE IF NOT EXISTS social_posts (
+    id TEXT PRIMARY KEY,
+    news_story_id TEXT NOT NULL,
+    headline TEXT NOT NULL,
+    summary TEXT DEFAULT '',
+    category TEXT DEFAULT '',
+    verification_status TEXT DEFAULT 'verified',
+    image_url TEXT DEFAULT '',
+    caption_instagram TEXT DEFAULT '',
+    caption_facebook TEXT DEFAULT '',
+    targets JSONB NOT NULL DEFAULT '["instagram","facebook"]',
+    status TEXT NOT NULL DEFAULT 'draft',
+    scheduled_at TIMESTAMPTZ,
+    posted_at TIMESTAMPTZ,
+    ig_post_id TEXT DEFAULT '',
+    fb_post_id TEXT DEFAULT '',
+    error TEXT DEFAULT '',
+    created_by TEXT DEFAULT '',
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+  )`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_social_posts_status ON social_posts(status, scheduled_at)`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_social_posts_story ON social_posts(news_story_id)`;
+
   ensured = true;
 }
 
