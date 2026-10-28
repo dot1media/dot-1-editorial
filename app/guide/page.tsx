@@ -1,6 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Shell from "@/components/Shell";
+import Walkthrough, { WalkStep } from "@/components/Walkthrough";
+import UITour, { TourStep } from "@/components/UITour";
+import { PlayCircle, Compass } from "lucide-react";
 
 // Staff guide: how content moves through the newsroom, who does each task, and how to troubleshoot.
 // Visuals are clean SVG illustrations of the real screens (not live captures) so the doc stays
@@ -170,10 +174,89 @@ function GraphicsMock() {
   );
 }
 
+function VerificationMock() {
+  const dots = [
+    { c: GOLD, label: "Verified", note: "default · gold dot" },
+    { c: "#e08a2b", label: "Pending verification", note: "orange dot" },
+    { c: "#c8372a", label: "Unverified", note: "red dot" },
+  ];
+  return (
+    <Frame w={770} h={168} title="READER-FACING STATUS — SET BY THE EDITOR">
+      {dots.map((d, i) => (
+        <g key={i}>
+          <rect x={20 + i * 250} y="44" width="230" height="64" rx="8" fill={d.c + "14"} stroke={d.c + "88"} />
+          <circle cx={42 + i * 250} cy="76" r="7" fill={d.c} />
+          <T x={58 + i * 250} y="72" fontSize="13" fontWeight="700" fill={BONE}>{d.label}</T>
+          <T x={58 + i * 250} y="90" fontSize="10.5" fill={BONE + "99"}>{d.note}</T>
+        </g>
+      ))}
+      <rect x="20" y="120" width="500" height="30" rx="6" fill={BONE + "0c"} stroke={BONE + "2a"} />
+      <T x="34" y="139" fontSize="11.5" fill={BONE + "cc"}>Override: publish at a chosen status with a written reason</T>
+      <rect x="600" y="120" width="150" height="30" rx="6" fill={GOLD} />
+      <T x="675" y="139" textAnchor="middle" fontSize="11.5" fontWeight="700" fill="#141210">Save status</T>
+    </Frame>
+  );
+}
+
+function SocialMock() {
+  return (
+    <Frame w={770} h={196} title="MAKE DOT 1 SEEN — SOCIAL QUEUE">
+      <rect x="600" y="38" width="150" height="26" rx="6" fill={CRIMSON} />
+      <T x="675" y="55" textAnchor="middle" fontSize="12" fontWeight="700" fill="#fff">Generate from latest</T>
+      {[{ s: "A", c: GOLD }, { s: "B", c: "#6ea8fe" }, { s: "C", c: "#5bbf9a" }].map((card, i) => (
+        <g key={i}>
+          <rect x={20 + i * 250} y="74" width="230" height="104" rx="8" fill={BONE + "0a"} stroke={BONE + "2a"} />
+          <rect x={20 + i * 250} y="74" width="230" height="52" rx="8" fill={card.c + "22"} />
+          <T x={34 + i * 250} y="100" fontSize="11" fontWeight="700" fill={card.c}>Card style {card.s}</T>
+          <T x={34 + i * 250} y="144" fontSize="10.5" fill={BONE + "aa"}>Instagram + Facebook</T>
+          <rect x={34 + i * 250} y="152" width="58" height="18" rx="9" fill={GOLD + "22"} stroke={GOLD + "88"} />
+          <T x={63 + i * 250} y="165" textAnchor="middle" fontSize="9.5" fill={GOLD}>Approve</T>
+          <rect x={98 + i * 250} y="152" width="58" height="18" rx="9" fill={BONE + "12"} stroke={BONE + "33"} />
+          <T x={127 + i * 250} y="165" textAnchor="middle" fontSize="9.5" fill={BONE + "cc"}>Schedule</T>
+        </g>
+      ))}
+    </Frame>
+  );
+}
+
+const WALK_STEPS: WalkStep[] = [
+  { tag: "The big picture", title: "One pipeline, every story", body: "However a story starts, a reporter, the AI Desk, or a public tip, it moves through the same path: reporting and sources, verification, editorial review, scoring, then publication to news.dot1.media and the app.", art: <FlowDiagram /> },
+  { tag: "Where stories begin", title: "Generate drafts from the wire", body: "Open AI Desk and press Generate now. It pulls the wire, writes drafts, scores them, and drops each in as a story in the Verification stage marked AI. A background schedule does this on its own too. Every AI draft still clears the full review workflow.", art: <AiDeskMock /> },
+  { tag: "Move it up", title: "Verify and climb the ladder", body: "The review status is computed from the actual work, not set by hand. Handle each verification claim and finish the checklist, and the story climbs the ladder on its own toward Ready to Publish.", art: <LadderDiagram /> },
+  { tag: "Score it", title: "Dual-rate the D1-4LS score", body: "Four indices, five indicators each, 0 to 2, out of 40. On an AI story the AI scorer rates first; a person adds the second rating on the Score tab. Close raters average; if they diverge, a third breaks the tie.", art: <DualRateDiagram /> },
+  { tag: "New", title: "Set the reader-facing status", body: "Before a story goes out, the editor sets the status readers see: Verified (the gold default), Pending verification, or Unverified. It shows as a colored dot in the app and on the website. Override lets you publish at a chosen status with a written reason.", art: <VerificationMock /> },
+  { tag: "New", title: "Make Dot 1 Seen", body: "From Social, generate branded cards from published stories in three alternating styles. Review the caption and pick Instagram, Facebook, or both, then approve and schedule, or post now. A background schedule fills open slots within active hours. Nothing posts until a person has approved it.", art: <SocialMock /> },
+  { tag: "Keep it current", title: "Manage what is live", body: "The Published section lists everything on the news site. Editing an article is a reporter or editor action; deleting is an editor action. Edits and deletes are immediate and permanent on the live site.", art: <PublishedMock /> },
+];
+
+const TOUR_STEPS: TourStep[] = [
+  { selector: '.side a[href="/stories"]', title: "Stories", body: "Create and work a story here: sources, evidence, the reporting log, verification claims, the script, the D1-4LS score, and the review checklist.", placement: "right" },
+  { selector: '.side a[href="/ai"]', title: "AI Desk", body: "Generate drafts from the wire. Each one lands as a story in Verification, marked AI, and goes through the full workflow.", placement: "right" },
+  { selector: '.side a[href="/review"]', title: "Review Queue", body: "Where stories waiting on verification and editor approval gather. Clear claims and the checklist to move them up the ladder.", placement: "right" },
+  { selector: '.side a[href="/social"]', title: "Social — Make Dot 1 Seen", body: "Turn published stories into branded Instagram and Facebook posts. Review, approve, and schedule or post now. Nothing goes out unapproved.", placement: "right" },
+  { selector: '.side a[href="/published"]', title: "Published", body: "Everything live on news.dot1.media and the app. Edit or remove articles, photos, and videos here; changes are immediate.", placement: "right" },
+  { selector: '.side a[href="/broadcast"]', title: "Broadcast", body: "Run the live show and on-air graphics, publish recorded episodes, and go live to the site and app.", placement: "right" },
+  { selector: '.side a[href="/accounts"]', title: "Accounts", body: "Owners grant roles and per-person capabilities here. If a page or button is missing for someone, this is where access is granted.", placement: "right" },
+  { selector: '.side a[href="/guide"]', title: "Replay any time", body: "You are on the Guide. Both the walkthrough and this tour live here, so you can replay either whenever you need a refresher.", placement: "right" },
+];
+
 export default function GuidePage() {
+  const [walk, setWalk] = useState(false);
+  const [tour, setTour] = useState(false);
   return (
     <Shell title="Newsroom Guide" subtitle="How content reaches readers, who does each task, and what to do when something looks wrong.">
+      <Walkthrough open={walk} onClose={() => setWalk(false)} title="Newsroom walkthrough" steps={WALK_STEPS} />
+      <UITour open={tour} onClose={() => setTour(false)} title="Newsroom tour" steps={TOUR_STEPS} />
       <div style={{ maxWidth: 860 }}>
+
+        <div className="card pad" style={{ marginBottom: 16, borderColor: GOLD + "55", background: GOLD + "0c" }}>
+          <div className="disp" style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>New here? Take the tour.</div>
+          <div style={{ fontSize: 14.5, lineHeight: 1.6, marginBottom: 12 }}>Two ways to learn the newsroom, and you can replay either any time from this page. The walkthrough shows each stage with illustrations; the live tour points out the real sections in the sidebar.</div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button className="btn primary sm" onClick={() => setWalk(true)} style={{ display: "inline-flex", alignItems: "center", gap: 7 }}><PlayCircle size={15} /> Play the walkthrough</button>
+            <button className="btn ghost sm" onClick={() => setTour(true)} style={{ display: "inline-flex", alignItems: "center", gap: 7 }}><Compass size={15} /> Take the live tour</button>
+          </div>
+        </div>
 
         <Section title="Printable handouts">
           <P>Print these or hand them to a new person. They stay in sync with this guide.</P>
@@ -222,6 +305,12 @@ export default function GuidePage() {
           <P>The final human gate, editor approval, is what lifts a story to Ready to Publish. This is an editor (or owner) action; reporters do the verification, editors sign off.</P>
         </Section>
 
+        <Section title="Set the reader-facing verification status" who={["Editor", "Owner"]}>
+          <VerificationMock />
+          <P>Separate from the internal review ladder, every story carries a <b>reader-facing status</b> that the editor sets: the colored dot readers see in the app and on the website. The default is <b style={{ color: GOLD }}>Verified</b> (gold). You can set <b style={{ color: "#e08a2b" }}>Pending verification</b> (orange) for a developing story, or <b style={{ color: "#c8372a" }}>Unverified</b> (red) when it is running ahead of full confirmation. The selector sits on the story; an <b>override</b> lets you publish at a chosen status with a written reason, outside the normal flow.</P>
+          <P>All currently published stories read as Verified unless you change them, so the app and site stay consistent. This is an editor or owner action.</P>
+        </Section>
+
         <Section title="Score a story and add the second rating" who={["Reporter", "Editor", "Owner"]}>
           <DualRateDiagram />
           <P>Every story gets a D1-4LS score: four indices, five indicators each, 0 to 2, out of 40. It informs the editor; it doesn't decide. Scoring is dual-rated: on an AI story the AI scorer is the first rater automatically. A person adds the second on the Score tab, set the indicators, then Submit my rating. Close raters average; if they diverge, a third breaks the tie. Reporters and editors can rate.</P>
@@ -234,6 +323,14 @@ export default function GuidePage() {
         <Section title="Manage what's already live (Published)" who={["Reporter", "Editor", "Owner"]}>
           <PublishedMock />
           <P>The Published section shows everything on the news site, including older articles from before this system. View is open to everyone; editing an article (headline, summary, body, category, byline, hero image) is a reporter/editor action; deleting articles or media is an editor action. <b>Edits and deletes are immediate and permanent on the live site</b>, no draft, no undo. Scores aren't edited here; re-scoring goes through the workflow.</P>
+          <P><b>What readers now see on the website.</b> On news.dot1.media a published article carries its full text (not just the summary), its colored verification dot, and its D1-4LS rating, which readers can tap to open the full breakdown of all twenty indicators. Everything a reader sees there follows from the status and score you set here.</P>
+        </Section>
+
+        <Section title="Make Dot 1 Seen (social posts)" who={["Editor", "Owner"]}>
+          <SocialMock />
+          <P><b>Social</b> turns published stories into branded posts for Instagram and Facebook. Press <b>Generate from latest</b> to build draft cards from recent published stories; the layout alternates across three styles (A, B, C) so the feed looks varied. Each draft has a caption you can edit and a choice of targets, Instagram, Facebook, or both.</P>
+          <P>Review a draft, then <b>Approve</b> and either <b>Schedule</b> it for a time or <b>Post now</b>. A background schedule also fills open slots automatically within active hours, at a steady, spaced cadence. <b>Nothing posts until a person has approved it</b>, and each post links back to the story. This is an editor or owner action.</P>
+          <p style={{ margin: "0 0 12px", fontSize: 13, color: MUTED }}><b>If posting says not configured.</b> The Meta connection (page token) isn't set on the portal's hosting. A maintainer adds it; you never need to handle the token yourself.</p>
         </Section>
 
         <Section title="Run the on-air graphics (broadcast)" who={["Producer", "Owner"]}>
