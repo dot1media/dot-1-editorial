@@ -3,11 +3,13 @@ import { sql } from "@/lib/db";
 import { ensureSchema, audit } from "@/lib/schema";
 import { requireCapability } from "@/lib/session";
 import { readJson } from "@/lib/api";
+import { CATEGORIES } from "@/lib/newsroom";
 
 export const runtime = "nodejs";
 
 const STATUSES = new Set(["draft", "approved", "scheduled", "posted", "failed"]);
 const TARGETS = new Set(["instagram", "facebook"]);
+const CATEGORY_SET = new Set<string>(CATEGORIES as readonly string[]);
 
 // Edit a queued post: captions, targets, status (approve), schedule time.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -33,6 +35,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
   if (typeof b.style === "string" && ["a", "b", "c"].includes(b.style)) {
     await sql`UPDATE social_posts SET style=${b.style}, updated_at=now() WHERE id=${id}`;
+  }
+  if (typeof b.category === "string" && CATEGORY_SET.has(b.category)) {
+    await sql`UPDATE social_posts SET category=${b.category}, updated_at=now() WHERE id=${id}`;
   }
   if (typeof b.status === "string" && STATUSES.has(b.status)) {
     await sql`UPDATE social_posts SET status=${b.status}, error='', updated_at=now() WHERE id=${id}`;

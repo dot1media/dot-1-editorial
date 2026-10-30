@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Shell from "@/components/Shell";
 import { api } from "@/lib/client";
+import { CATEGORIES } from "@/lib/newsroom";
 
 type Post = {
   id: string;
@@ -150,7 +151,15 @@ export default function SocialPage() {
               {/* controls */}
               <div style={{ flex: 1, minWidth: 320 }}>
                 <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 2 }}>{p.headline}</div>
-                <div className="tiny muted" style={{ marginBottom: 10 }}>{p.category} · {p.verification_status}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                  <label className="mini">CATEGORY TAG</label>
+                  <select className="in" value={p.category || ""} style={{ padding: "4px 8px", fontSize: 12.5, width: "auto" }}
+                    onChange={(e) => patch(p.id, { category: e.target.value })}>
+                    {!(CATEGORIES as readonly string[]).includes(p.category || "") && <option value={p.category || ""}>{p.category || "(unset)"}</option>}
+                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <span className="tiny muted">· {p.verification_status}</span>
+                </div>
 
                 <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
                   {["instagram", "facebook"].map((t) => (
