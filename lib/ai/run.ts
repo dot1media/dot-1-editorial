@@ -1,5 +1,6 @@
 import { sql } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
+import { recomputeReviewState } from "@/lib/reviewState";
 import { newId } from "@/lib/api";
 import { getFeeds, type FeedSource, type NewsCategory } from "@/lib/ai/sources";
 import { fetchFeed, type FeedItem } from "@/lib/ai/rss";
@@ -67,7 +68,62 @@ async function insertDraft(article: GeneratedArticle, item: FeedItem, source: Fe
   await sql`INSERT INTO story_ratings (id, story_id, rater_kind, rater_id, rater_name, scores, notes)
     VALUES (${newId("rate")}, ${id}, ${"ai"}, ${"ai-scorer"}, ${"AI scorer"}, ${JSON.stringify(article.indicators)}::jsonb, ${article.scoringNotes || ""})`;
 
+  // Seed the reporting dossier so a generated story opens with its provenance
+  // already laid out, not a set of empty tabs. All of this is auto-filled from
+  // the source item and the brief; VERIFICATION stays the editor's job (claims
+  // land as "unconfirmed", the story stays "not_verified").
+  try {
+    await seedDossier(id, article, item, source);
+    await recomputeReviewState(id);
+  } catch (e: any) {
+    // Seeding is best-effort: a draft must exist even if a sub-section insert fails.
+    console.error(`dossier seed failed for ${id}: ${e?.message || e}`);
+  }
+
   return id;
+}
+
+const clip = (s: string, n: number) => (s && s.length > n ? s.slice(0, n - 1) + "…" : s || "");
+
+// Fill the Sources, Evidence, Reporting-log and Claims tabs for a freshly
+// generated draft. Honest provenance only: the originating outlet as the source,
+// the original report as evidence, a log entry recording how the draft was made,
+// and the brief's factual claims as an unconfirmed verification checklist.
+async function seedDossier(storyId: string, article: GeneratedArticle, item: FeedItem, source: FeedSource): Promise<void> {
+  const published = item.publishedAt ? item.publishedAt.toISOString().slice(0, 10) : "";
+  const baseline = source.sciBaseline;
+
+  // 1) Originating outlet as a source row.
+  await sql`INSERT INTO story_sources (id, story_id, name, organization, title, contact, source_type, attribution, response_status, notes, reliability_notes, added_by, date_contacted)
+    VALUES (${newId("src")}, ${storyId}, ${source.name}, ${source.name}, ${""}, ${""},
+      ${"secondary_reporting"}, ${"on_record"}, ${"pending"},
+      ${clip(`Originating outlet for this AI-generated brief. Original report: ${item.link}${item.description ? ` — ${item.description}` : ""}`, 600)},
+      ${`Registry SCI baseline for ${source.name}: transparency ${baseline.transparency}/2, track record ${baseline.trackRecord}/2, editorial standards ${baseline.editorialStandards}/2.`},
+      ${"ai-desk"}, ${null})`;
+
+  // 2) The original report as a URL evidence item.
+  if (item.link) {
+    await sql`INSERT INTO story_evidence (id, story_id, kind, label, url, notes, added_by)
+      VALUES (${newId("ev")}, ${storyId}, ${"url"}, ${clip(`Original report: ${item.title}`, 180)}, ${item.link},
+        ${clip(`Source article from ${source.name}${published ? `, published ${published}` : ""}.`, 300)}, ${"ai-desk"})`;
+  }
+
+  // 3) A provenance entry in the reporting log.
+  const logEntry = clip(
+    `AI Desk generated this draft from ${source.name} (${item.link || "no link"}) via the two-pass writer and independent D1-4LS scorer. ` +
+      `Score confidence: ${article.scoreConfidence}. Sources, evidence, and candidate claims are auto-seeded; verification is pending editorial review.`,
+    700,
+  );
+  await sql`INSERT INTO reporting_log (id, story_id, entry, author_email) VALUES (${newId("log")}, ${storyId}, ${logEntry}, ${"ai-desk"})`;
+
+  // 4) The brief's factual claims, as an unconfirmed verification checklist.
+  for (const c of article.claims || []) {
+    const claim = clip(c.claim, 300);
+    if (!claim) continue;
+    await sql`INSERT INTO verification_claims (id, story_id, claim, status, sources, notes, updated_by)
+      VALUES (${newId("clm")}, ${storyId}, ${claim}, ${"unconfirmed"}, ${c.source || source.name},
+        ${"Auto-extracted from the source brief. Verify against the original report before publication."}, ${"ai-desk"})`;
+  }
 }
 
 /**

@@ -52,6 +52,9 @@ export interface GeneratedArticle {
   scoringNotes: string;
   interpretation: string; // D1-4LS v2.1: bounded, reader-facing profile interpretation
   indexNotes: { BAI: string; PSI: string; SCI: string; HII: string };
+  // Verifiable factual claims extracted from the brief, seeded into the story's
+  // verification checklist as "unconfirmed" for the editor to confirm.
+  claims: { claim: string; source: string }[];
   generationMode: 'ai' | 'template';
 }
 
@@ -120,6 +123,7 @@ function buildTemplateArticle(item: FeedItem, source: FeedSource): GeneratedArti
     tags: [source.category, 'curated'],
     citations: JSON.stringify([{ title: item.title, url: item.link, source: source.name }]),
     editorNote: '',
+    claims: [],
     indicators,
     totals: computeIndexTotals(indicators),
     interpretation: 'This is a curated brief pending full assessment and independent human review. The four index scores describe different things and should be read together, not reduced to a single judgment; the score is not a measure of truth, importance, or endorsement.',
@@ -174,6 +178,7 @@ interface ScorerOutput {
   indexNotes: { BAI: string; PSI: string; SCI: string; HII: string };
   interpretation: string;
   confidence: 'low' | 'moderate' | 'high';
+  claims: { claim: string; source: string }[];
 }
 
 const ARTICLE_INDICATORS = [
@@ -263,6 +268,7 @@ ALSO produce:
 - "indexNotes": ONE plain-English sentence per index, written for ordinary readers, explaining what drove that lens's result for THIS story (no jargon, no indicator names).
 - "interpretation": a bounded, reader-facing interpretation of the WHOLE profile, 2 to 4 sentences, following this template: (1) name the profile's most distinctive supported features and which lenses they come from; (2) state the most important sourcing strength or limitation using SCI; (3) clarify any theological, prophetic, or human-impact boundary a reader might misread (for example that low PSI is not weak journalism, or a high score is not an endorsement). Every clause must trace to a rationale above. Make NO claim of factual certainty, prophetic fulfillment, endorsement, or overall quality from the total. No em-dashes, no markdown.
 - "confidence": "low" if the source summary is under ~40 words or claims are uncorroborated; "moderate" for typical single-outlet reporting; "high" only when the item itself contains primary/corroborated material.
+- "claims": the 3 to 6 most important FACTUAL assertions the brief makes that an editor must verify before publication (names, numbers, dates, events, direct quotes, causal or attributive claims). Quote or closely paraphrase each from the brief; do NOT invent any claim that is not in the brief. For each, set "source" to the outlet the brief attributes it to (default "${source.name}"). If the brief makes no checkable factual claims, return an empty array.
 
 OUTPUT — ONLY a JSON object, no fences:
 {
@@ -272,7 +278,8 @@ OUTPUT — ONLY a JSON object, no fences:
   },
   "indexNotes": {"BAI": "one sentence", "PSI": "one sentence", "SCI": "one sentence", "HII": "one sentence"},
   "interpretation": "2 to 4 sentences per the template above",
-  "confidence": "low|moderate|high"
+  "confidence": "low|moderate|high",
+  "claims": [{"claim": "a factual assertion taken from the brief", "source": "${source.name}"}]
 }`;
 }
 
@@ -340,11 +347,23 @@ function validateScorer(s: any): ScorerOutput | null {
   const n = s.indexNotes || {};
   const note = (v: any) => String(v || '').replace(/[|\n]/g, ' ').slice(0, 220);
   const conf = ['low', 'moderate', 'high'].includes(s.confidence) ? s.confidence : 'moderate';
+  // Claims are a best-effort extraction for the editor's verification checklist:
+  // lenient parse, and never fail the scoring pass over them.
+  const claims = Array.isArray(s.claims)
+    ? s.claims
+        .map((c: any) => ({
+          claim: String(c?.claim || '').replace(/\s+/g, ' ').trim().slice(0, 300),
+          source: String(c?.source || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+        }))
+        .filter((c: { claim: string }) => c.claim.length > 0)
+        .slice(0, 8)
+    : [];
   return {
     indicators: out,
     indexNotes: { BAI: note(n.BAI), PSI: note(n.PSI), SCI: note(n.SCI), HII: note(n.HII) },
     interpretation: String(s.interpretation || '').replace(/\s+/g, ' ').trim().slice(0, 900),
     confidence: conf,
+    claims,
   };
 }
 
@@ -395,6 +414,7 @@ function buildTwoPassArticle(
     imageCredit: '',
     tags: draft.tags,
     citations: JSON.stringify([{ title: item.title, url: item.link, source: source.name }]),
+    claims: scored?.claims ?? [],
     indicators,
     totals: computeIndexTotals(indicators),
     interpretation,
@@ -436,7 +456,7 @@ export async function generateArticle(
     if (draft) {
       const remaining = aiTimeoutMs - (Date.now() - started) - 1500;
       const scorerBudget = Math.max(8000, Math.min(30000, remaining));
-      const rawScorer = await callAnthropic(buildScorerPrompt(item, source, draft), apiKey, scorerBudget, 1900, ANTHROPIC_MODEL_SCORER);
+      const rawScorer = await callAnthropic(buildScorerPrompt(item, source, draft), apiKey, scorerBudget, 2300, ANTHROPIC_MODEL_SCORER);
       const scored = validateScorer(rawScorer);
       if (!scored) console.warn(`⚖️  Scorer pass unavailable for "${draft.title.slice(0, 50)}" — neutral baseline applied`);
       console.log(`✍️  2-pass ${scored ? 'complete' : 'degraded'} in ${Date.now() - started}ms: "${draft.title.slice(0, 50)}"`);
