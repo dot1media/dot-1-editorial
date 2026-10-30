@@ -46,6 +46,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const has = (k: string) => k in b;
   const s = (k: string): string => (b[k] == null ? "" : String(b[k]));
+  const bool = (k: string): boolean => b[k] === true || b[k] === "true";
   const slug = has("slug") ? slugify(s("slug")) : "";
   const planned = has("plannedPublishAt") ? (b.plannedPublishAt || null) : null;
   const deadline = has("deadline") ? (b.deadline || null) : null;
@@ -62,6 +63,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     priority         = CASE WHEN ${has("priority")}        THEN ${s("priority")}        ELSE priority END,
     hero_image       = CASE WHEN ${has("heroImage")}       THEN ${s("heroImage")}       ELSE hero_image END,
     hero_image_credit = CASE WHEN ${has("heroImageCredit")} THEN ${s("heroImageCredit")} ELSE hero_image_credit END,
+    hero_image_rights_restricted = CASE WHEN ${has("heroImageRightsRestricted")} THEN ${bool("heroImageRightsRestricted")} ELSE hero_image_rights_restricted END,
     why_publish      = CASE WHEN ${has("whyPublish")}      THEN ${s("whyPublish")}      ELSE why_publish END,
     slug             = CASE WHEN ${has("slug")}            THEN ${slug}                 ELSE slug END,
     planned_publish_at = CASE WHEN ${has("plannedPublishAt")} THEN ${planned} ELSE planned_publish_at END,

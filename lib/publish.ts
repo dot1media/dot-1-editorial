@@ -25,7 +25,15 @@ export interface EditorialStoryRow {
   news_story_id?: string | null;
   verification_status?: string | null;
   verification_override?: boolean | null;
+  source_url?: string | null;
+  source_name?: string | null;
+  hero_image_credit?: string | null;
+  hero_image_rights_restricted?: boolean | null;
 }
+
+// A resizable, branded placeholder shown in place of a rights-restricted source
+// image. Served from the news site. Reused across any story with the same issue.
+const BRAND_FALLBACK_IMAGE = "https://news.dot1.media/story-fallback.png";
 
 const CLASSIFICATION_TO_FORMAT: Record<string, string> = {
   news: "article",
@@ -41,7 +49,13 @@ function prepare(story: EditorialStoryRow) {
   const headline = (story.final_headline || story.working_headline || "").trim();
   const summary = (story.summary || "").trim() || headline;
   const content = (story.body || "").trim() || summary;
-  const image = (story.hero_image || "").trim() || "https://news.dot1.media/placeholder.jpg";
+  // Copyright protection: when an editor marks the source image rights-restricted,
+  // publish a branded, resizable placeholder instead and credit it to Dot 1 News.
+  // Otherwise keep the source image and carry its credit to the article footer.
+  const rightsRestricted = !!story.hero_image_rights_restricted;
+  const sourceImage = (story.hero_image || "").trim() || "https://news.dot1.media/placeholder.jpg";
+  const image = rightsRestricted ? BRAND_FALLBACK_IMAGE : sourceImage;
+  const imageCredit = rightsRestricted ? "Dot 1 News" : String(story.hero_image_credit || "").trim();
   const ind = normalizeIndicators(story.scores?.indicators || {});
   const totals = computeIndexTotals(ind);
   const wc = wordCount(content);
@@ -58,6 +72,11 @@ function prepare(story: EditorialStoryRow) {
     interpretation: String(scores.interpretation || "").slice(0, 1200),
     scoreNotes: JSON.stringify(scores.indexNotes || {}),
     instrumentVersion: String(scores.instrumentVersion || "2.1"),
+    // Source + image attribution for the article footer.
+    imageCredit,
+    imageRightsRestricted: rightsRestricted,
+    sourceUrl: String(story.source_url || "").trim().slice(0, 1000),
+    sourceName: String(story.source_name || "").trim().slice(0, 200),
   };
 }
 
@@ -86,6 +105,12 @@ async function ensureScoreMetaColumns(): Promise<void> {
     await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS d14ls_interpretation TEXT`;
     await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS d14ls_index_notes JSONB`;
     await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS d14ls_instrument_version TEXT`;
+    // Source + image attribution for the article footer.
+    await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS source_url TEXT`;
+    await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS source_name TEXT`;
+    await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS image_credit TEXT`;
+    await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS image_credit_url TEXT`;
+    await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS image_rights_restricted BOOLEAN NOT NULL DEFAULT false`;
     scoreMetaColsReady = true;
   } catch { /* best effort; the app degrades gracefully when these are absent */ }
 }
@@ -135,6 +160,8 @@ export async function publishToNews(
       reviewed_at = COALESCE(reviewed_at, ${now}), is_dual_rated = ${dualRated},
       verification_status = ${vStatus}, verification_override = ${vOverride},
       d14ls_interpretation = ${p.interpretation}, d14ls_index_notes = ${p.scoreNotes}::jsonb, d14ls_instrument_version = ${p.instrumentVersion},
+      source_url = ${p.sourceUrl}, source_name = ${p.sourceName},
+      image_credit = ${p.imageCredit}, image_rights_restricted = ${p.imageRightsRestricted},
       updated_at = now()
       WHERE id = ${newsId}`;
     return { newsStoryId: newsId, totalScore: total };
@@ -150,7 +177,8 @@ export async function publishToNews(
       hii_human_dignity, hii_compassion_empathy, hii_societal_impact, hii_justice_responsibility, hii_christ_modeled_care,
       score_confidence, status, date, published_at, reviewed_at, is_dual_rated,
       verification_status, verification_override,
-      d14ls_interpretation, d14ls_index_notes, d14ls_instrument_version
+      d14ls_interpretation, d14ls_index_notes, d14ls_instrument_version,
+      source_url, source_name, image_credit, image_rights_restricted
     ) VALUES (
       ${newsId}, ${p.headline}, ${p.summary}, ${p.content}, ${p.image}, ${p.category}, ${authorLabel}, ${[] as string[]},
       ${p.format}, ${p.wc}, ${p.readMin},
@@ -161,7 +189,8 @@ export async function publishToNews(
       ${i.hiiHumanDignity}, ${i.hiiCompassionEmpathy}, ${i.hiiSocietalImpact}, ${i.hiiJusticeResponsibility}, ${i.hiiChristModeledCare},
       ${p.confidence}, 'published', ${now}, ${now}, ${now}, ${dualRated},
       ${vStatus}, ${vOverride},
-      ${p.interpretation}, ${p.scoreNotes}::jsonb, ${p.instrumentVersion}
+      ${p.interpretation}, ${p.scoreNotes}::jsonb, ${p.instrumentVersion},
+      ${p.sourceUrl}, ${p.sourceName}, ${p.imageCredit}, ${p.imageRightsRestricted}
     )`;
   return { newsStoryId: newsId, totalScore: total };
 }

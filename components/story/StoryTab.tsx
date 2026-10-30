@@ -27,6 +27,7 @@ export default function StoryTab({ data, reload, can }: { data: any; reload: () 
     location: s.location || "",
     heroImage: s.hero_image || "",
     heroImageCredit: s.hero_image_credit || "",
+    heroImageRightsRestricted: !!s.hero_image_rights_restricted,
     whyPublish: s.why_publish || "",
     deadline: toLocalInput(s.deadline),
     plannedPublishAt: toLocalInput(s.planned_publish_at),
@@ -121,6 +122,12 @@ export default function StoryTab({ data, reload, can }: { data: any; reload: () 
             </div>
             {f.heroImage && <img src={f.heroImage} alt="" style={{ marginTop: 8, width: "100%", maxHeight: 140, objectFit: "cover", borderRadius: 6 }} />}
             {f.heroImage && <input className="in" style={{ marginTop: 8 }} value={f.heroImageCredit} disabled={!editable} onChange={(e) => set("heroImageCredit", e.target.value)} placeholder="Photo credit / source (required for licensed images)" />}
+            {f.heroImage && (
+              <label style={{ marginTop: 8, display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12.5, cursor: editable ? "pointer" : "default" }}>
+                <input type="checkbox" checked={f.heroImageRightsRestricted} disabled={!editable} onChange={(e) => { setF((p) => ({ ...p, heroImageRightsRestricted: e.target.checked })); setSaved(false); }} style={{ marginTop: 2 }} />
+                <span className="muted">Image is rights-restricted. On publish, a branded placeholder is shown instead of this image.</span>
+              </label>
+            )}
           </div>
         </div>
       </div>
