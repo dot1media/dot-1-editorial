@@ -7,7 +7,7 @@ import { useMe, api } from "@/lib/client";
 import type { Capability } from "@/lib/permissions";
 import {
   LayoutDashboard, FileText, Inbox, ScrollText, ShieldCheck,
-  Users, ClipboardList, Radio, Menu, LogOut, Image as ImageIcon, Sparkles, Newspaper, BookOpen, Bell, BarChart3, CalendarDays, BookUser, Mail, Film, Share2 } from "lucide-react";
+  Users, ClipboardList, Radio, Menu, ChevronDown, LogOut, Image as ImageIcon, Sparkles, Newspaper, BookOpen, Bell, BarChart3, CalendarDays, BookUser, Mail, Film, Share2 } from "lucide-react";
 
 interface NavItem {
   href: string;
@@ -71,6 +71,12 @@ export default function Shell({
   const visible = NAV.filter((n) => !n.cap || can(n.cap));
   let lastGroup: string | undefined;
 
+  const isActive = (href: string) => pathname === href || (href !== "/" && pathname.startsWith(href));
+  const currentItem = visible
+    .filter((n) => isActive(n.href))
+    .sort((a, b) => b.href.length - a.href.length)[0];
+  const currentLabel = currentItem?.label || title;
+
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
     router.replace("/login");
@@ -116,9 +122,46 @@ export default function Shell({
       <div className="main">
         <header className="top">
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <button className="btn ghost sm mobile-only" onClick={() => setOpen((o) => !o)} style={{ display: "none" }}>
-              <Menu size={16} />
-            </button>
+            <div className="navdrop">
+              <button className="navdrop-btn" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Navigate the newsroom">
+                <Menu size={16} />
+                <span>{currentLabel}</span>
+                <ChevronDown size={15} className={"chev" + (open ? " up" : "")} />
+              </button>
+              {open && (
+                <>
+                  <div className="navdrop-scrim" onClick={() => setOpen(false)} />
+                  <div className="navdrop-panel">
+                    <nav className="navdrop-list">
+                      {(() => {
+                        let lg: string | undefined;
+                        return visible.map((n) => {
+                          const showGroup = n.group && n.group !== lg;
+                          lg = n.group || lg;
+                          const Icon = n.icon;
+                          return (
+                            <div key={n.href}>
+                              {showGroup && <div className="grp">{n.group}</div>}
+                              <Link href={n.href} className={isActive(n.href) ? "on" : ""} onClick={() => setOpen(false)}>
+                                <Icon size={16} strokeWidth={2} />
+                                {n.label}
+                              </Link>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </nav>
+                    <div className="navdrop-foot">
+                      <div className="nm">{me.name || me.email}</div>
+                      <div className="rl">{me.role}</div>
+                      <button className="btn ghost sm" onClick={logout}>
+                        <LogOut size={14} /> Sign out
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
             <div>
               <h1>{title}</h1>
               {subtitle && <div className="sub">{subtitle}</div>}

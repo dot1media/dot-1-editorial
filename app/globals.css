@@ -140,9 +140,43 @@ table.grid-t tr:hover td { background: var(--hover); }
 .flow-card .tiny { margin-top: 3px; text-align: center; }
 .flow-arrow { color: var(--crimson); }
 
+/* Mobile navigation dropdown (replaces the sidebar on small screens) */
+.navdrop { display: none; position: relative; }
+.navdrop-btn {
+  display: flex; align-items: center; gap: 8px; max-width: 60vw;
+  padding: 8px 12px; border-radius: 10px; cursor: pointer;
+  background: var(--raised); border: 1px solid var(--line);
+  color: var(--bone); font-size: 13.5px; font-weight: 600;
+}
+.navdrop-btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.navdrop-btn svg { flex: none; }
+.navdrop-btn .chev { opacity: .75; transition: transform .2s var(--e); }
+.navdrop-btn .chev.up { transform: rotate(180deg); }
+.navdrop-scrim { position: fixed; inset: 0; z-index: 40; }
+.navdrop-panel {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 50;
+  width: min(300px, 86vw); max-height: 74vh; overflow-y: auto;
+  background: var(--raised); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: var(--shadow-lg); padding: 8px; animation: d1fade .16s var(--e);
+}
+.navdrop-list { display: flex; flex-direction: column; gap: 2px; }
+.navdrop-list a {
+  display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 9px;
+  color: var(--dim); font-size: 14px; font-weight: 500;
+}
+.navdrop-list a svg { flex: none; opacity: .85; }
+.navdrop-list a:hover { background: var(--hover); color: var(--bone); }
+.navdrop-list a.on { background: var(--crimson); color: var(--on-crimson); }
+.navdrop-list a.on svg { opacity: 1; }
+.navdrop-list .grp { font-family: "IBM Plex Mono", monospace; font-size: 9px; letter-spacing: 0.2em; color: var(--dimmer); padding: 13px 12px 5px; }
+.navdrop-foot { border-top: 1px solid var(--line); margin-top: 8px; padding: 12px 12px 6px; }
+.navdrop-foot .nm { font-weight: 600; font-size: 13px; }
+.navdrop-foot .rl { font-family: "IBM Plex Mono", monospace; font-size: 9px; letter-spacing: .14em; color: var(--gold); margin-top: 2px; text-transform: uppercase; }
+.navdrop-foot .btn { margin-top: 10px; width: 100%; }
+
 @media (max-width: 860px) {
-  .side { position: fixed; z-index: 50; transform: translateX(-100%); transition: transform 0.28s var(--e); box-shadow: var(--shadow-lg); }
-  .side.open { transform: none; }
+  .side { display: none; }
+  .navdrop { display: block; }
   .content { padding: 20px 16px 50px; }
   .top { padding: 14px 16px; flex-wrap: wrap; gap: 10px; }
   .top h1 { font-size: 21px; }
