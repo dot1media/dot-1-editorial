@@ -24,7 +24,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     b.confidence === "high" || b.confidence === "developing" ? b.confidence : "moderate";
   const notes = String(b.notes || "");
 
-  const scores = { indicators, totals, notes, ratedBy: account.email, ratedAt: new Date().toISOString() };
+  // Preserve the D1-4LS v2.1 metadata (written interpretation, per-index notes, and the
+  // instrument version) across a manual re-score; let an editor edit the interpretation.
+  const cur = (await sql`SELECT scores FROM stories WHERE id = ${id} LIMIT 1`) as any[];
+  const prev = (cur[0]?.scores) || {};
+  const interpretation = typeof b.interpretation === "string" ? b.interpretation.slice(0, 1200) : String(prev.interpretation || "");
+  const indexNotes = prev.indexNotes || { BAI: "", PSI: "", SCI: "", HII: "" };
+  const instrumentVersion = String(prev.instrumentVersion || "2.1");
+
+  const scores = { indicators, totals, notes, interpretation, indexNotes, instrumentVersion, ratedBy: account.email, ratedAt: new Date().toISOString() };
   await sql`UPDATE stories SET scores = ${JSON.stringify(scores)}, score_confidence = ${confidence}, updated_at = now() WHERE id = ${id}`;
   await audit(account.email, "story.score", "story", id, { total: totals.total, confidence });
   return NextResponse.json({ ok: true, totals });

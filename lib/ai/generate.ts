@@ -50,6 +50,8 @@ export interface GeneratedArticle {
   totals: IndexTotals;
   scoreConfidence: ScoreConfidence;
   scoringNotes: string;
+  interpretation: string; // D1-4LS v2.1: bounded, reader-facing profile interpretation
+  indexNotes: { BAI: string; PSI: string; SCI: string; HII: string };
   generationMode: 'ai' | 'template';
 }
 
@@ -120,6 +122,8 @@ function buildTemplateArticle(item: FeedItem, source: FeedSource): GeneratedArti
     editorNote: '',
     indicators,
     totals: computeIndexTotals(indicators),
+    interpretation: 'This is a curated brief pending full assessment and independent human review. The four index scores describe different things and should be read together, not reduced to a single judgment; the score is not a measure of truth, importance, or endorsement.',
+    indexNotes: { BAI: '', PSI: '', SCI: '', HII: '' },
     scoreConfidence: 'developing',
     scoringNotes:
       `Automated curation (template mode). BAI/PSI/HII set to neutral midpoint pending human rating. ` +
@@ -168,6 +172,7 @@ interface WriterOutput {
 interface ScorerOutput {
   indicators: Record<string, { rationale: string; score: number }>;
   indexNotes: { BAI: string; PSI: string; SCI: string; HII: string };
+  interpretation: string;
   confidence: 'low' | 'moderate' | 'high';
 }
 
@@ -229,6 +234,13 @@ OUTPUT, ONLY a JSON object, no fences, no preamble:
 function buildScorerPrompt(item: FeedItem, source: FeedSource, draft: WriterOutput): string {
   return `You are the independent D1-4LS assessor for "Dot 1 News". You did NOT write the brief below — assess it skeptically. Eloquence is not evidence: score the story AS SOURCED, and penalize gaps the writing papers over.
 
+D1-4LS v2.1 INTERPRETATION PRINCIPLES (govern your scoring AND your written interpretation):
+- The four lenses measure DIFFERENT things and must stay separate. A high BAI never implies the facts are verified; a low PSI never implies weak journalism; SCI (sourcing) is independent of theological alignment.
+- The composite total is a secondary summary only. Never treat it as a probability, a percentage of truth, or an overall quality grade. The ordered profile (BAI, PSI, SCI, HII) is the primary result.
+- Restraint: PSI rewards documented thematic relevance held with humility, never prophetic fulfillment, certainty, or date-setting.
+- Non-endorsement: a high score never endorses the people, actions, or institutions in the story. Reporting accurately on an unethical act does not make the report unethical.
+- Separation: keep theological interpretation distinct from factual verification; distinguish a story's SUBJECT from its editorial TREATMENT.
+
 ORIGINAL SOURCE ITEM:
 - Outlet: ${source.name}
 - Headline: ${item.title}
@@ -249,6 +261,7 @@ HII (human consequence): hiiHumanDignity, hiiCompassionEmpathy, hiiSocietalImpac
 
 ALSO produce:
 - "indexNotes": ONE plain-English sentence per index, written for ordinary readers, explaining what drove that lens's result for THIS story (no jargon, no indicator names).
+- "interpretation": a bounded, reader-facing interpretation of the WHOLE profile, 2 to 4 sentences, following this template: (1) name the profile's most distinctive supported features and which lenses they come from; (2) state the most important sourcing strength or limitation using SCI; (3) clarify any theological, prophetic, or human-impact boundary a reader might misread (for example that low PSI is not weak journalism, or a high score is not an endorsement). Every clause must trace to a rationale above. Make NO claim of factual certainty, prophetic fulfillment, endorsement, or overall quality from the total. No em-dashes, no markdown.
 - "confidence": "low" if the source summary is under ~40 words or claims are uncorroborated; "moderate" for typical single-outlet reporting; "high" only when the item itself contains primary/corroborated material.
 
 OUTPUT — ONLY a JSON object, no fences:
@@ -258,6 +271,7 @@ OUTPUT — ONLY a JSON object, no fences:
     "... all 17 keys in the same shape ..."
   },
   "indexNotes": {"BAI": "one sentence", "PSI": "one sentence", "SCI": "one sentence", "HII": "one sentence"},
+  "interpretation": "2 to 4 sentences per the template above",
   "confidence": "low|moderate|high"
 }`;
 }
@@ -329,6 +343,7 @@ function validateScorer(s: any): ScorerOutput | null {
   return {
     indicators: out,
     indexNotes: { BAI: note(n.BAI), PSI: note(n.PSI), SCI: note(n.SCI), HII: note(n.HII) },
+    interpretation: String(s.interpretation || '').replace(/\s+/g, ' ').trim().slice(0, 900),
     confidence: conf,
   };
 }
@@ -366,6 +381,11 @@ function buildTwoPassArticle(
     ? `2-pass · BAI: ${scored.indexNotes.BAI} | PSI: ${scored.indexNotes.PSI} | SCI: ${scored.indexNotes.SCI} | HII: ${scored.indexNotes.HII}`
     : 'Automated scoring was unavailable for this article; neutral baseline scores applied pending review.';
 
+  const indexNotes = scored ? scored.indexNotes : { BAI: '', PSI: '', SCI: '', HII: '' };
+  const interpretation = scored && scored.interpretation
+    ? humanizeProse(scored.interpretation)
+    : 'This is a provisional automated assessment pending independent human review. Read the four index scores together rather than as a single total: the score is not a measure of truth, importance, or endorsement.';
+
   return {
     title: humanizeProse(draft.title),
     summary: humanizeProse(draft.summary),
@@ -377,6 +397,8 @@ function buildTwoPassArticle(
     citations: JSON.stringify([{ title: item.title, url: item.link, source: source.name }]),
     indicators,
     totals: computeIndexTotals(indicators),
+    interpretation,
+    indexNotes,
     // Map scorer honesty onto the methodology's states: automated passes
     // never self-certify 'high' (dual-rating owns that); 'low' → 'developing'.
     scoreConfidence: scored

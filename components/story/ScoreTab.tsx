@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { api, useMe } from "@/lib/client";
-import { INDEX_META, computeIndexTotals, normalizeIndicators, interpretTotal, IndicatorScores } from "@/lib/scoring";
+import { INDEX_META, computeIndexTotals, normalizeIndicators, compositeBand, sciNotice, INSTRUMENT_VERSION, IndicatorScores } from "@/lib/scoring";
 import type { Capability } from "@/lib/permissions";
 
 export default function ScoreTab({ data, reload, can }: { data: any; reload: () => void; can: (c: Capability) => boolean }) {
@@ -12,6 +12,7 @@ export default function ScoreTab({ data, reload, can }: { data: any; reload: () 
   const [ind, setInd] = useState<IndicatorScores>(normalizeIndicators(existing));
   const [confidence, setConfidence] = useState(data.story.score_confidence || "developing");
   const [notes, setNotes] = useState(data.story.scores?.notes || "");
+  const [interpretation, setInterpretation] = useState(data.story.scores?.interpretation || "");
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -49,7 +50,7 @@ export default function ScoreTab({ data, reload, can }: { data: any; reload: () 
   async function save() {
     setBusy(true);
     try {
-      await api(`/api/stories/${data.story.id}/score`, { method: "POST", body: JSON.stringify({ indicators: ind, confidence, notes }) });
+      await api(`/api/stories/${data.story.id}/score`, { method: "POST", body: JSON.stringify({ indicators: ind, confidence, notes, interpretation }) });
       setSaved(true);
       reload();
     } finally {
@@ -62,18 +63,26 @@ export default function ScoreTab({ data, reload, can }: { data: any; reload: () 
       <div className="card pad">
         <div className="row-between">
           <div>
-            <div className="disp" style={{ fontSize: 30, fontWeight: 700 }}>{totals.total}<span className="muted" style={{ fontSize: 16 }}>/40</span></div>
-            <div className="tiny muted">{interpretTotal(totals.total)} · read the profile, not the total</div>
+            <div style={{ display: "flex", gap: 20 }}>
+              {[["BAI", totals.biblicalAlignment], ["PSI", totals.propheticSignificance], ["SCI", totals.sourceCredibility], ["HII", totals.humanities]].map(([k, v]) => (
+                <div key={k as string} style={{ textAlign: "center" }}>
+                  <div className="disp" style={{ fontSize: 26, fontWeight: 700 }}>{v}<span className="muted" style={{ fontSize: 12 }}>/10</span></div>
+                  <div className="mini">{k}</div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 20 }}>
-            {[["BAI", totals.biblicalAlignment], ["PSI", totals.propheticSignificance], ["SCI", totals.sourceCredibility], ["HII", totals.humanities]].map(([k, v]) => (
-              <div key={k as string} style={{ textAlign: "center" }}>
-                <div className="disp" style={{ fontSize: 22, fontWeight: 700 }}>{v}</div>
-                <div className="mini">{k}</div>
-              </div>
-            ))}
+          <div style={{ textAlign: "right" }}>
+            <div className="disp" style={{ fontSize: 22, fontWeight: 700 }}>{totals.total}<span className="muted" style={{ fontSize: 13 }}>/40</span></div>
+            <div className="tiny muted">{compositeBand(totals.total).label}</div>
+            <div className="mini muted" style={{ marginTop: 2 }}>v{INSTRUMENT_VERSION} · read the four lenses, not the total</div>
           </div>
         </div>
+        {sciNotice(totals.sourceCredibility).level !== "none" && (
+          <div className="tiny" style={{ marginTop: 12, padding: "9px 12px", borderRadius: 8, background: sciNotice(totals.sourceCredibility).level === "warning" ? "rgba(199,42,38,0.12)" : "rgba(200,162,74,0.12)", border: "1px solid rgba(199,42,38,0.25)", color: "#ffb4b4" }}>
+            {sciNotice(totals.sourceCredibility).text}
+          </div>
+        )}
       </div>
 
       {/* Dual-rater: shown once there is at least one rating (AI drafts start with the AI scorer). */}
@@ -143,7 +152,11 @@ export default function ScoreTab({ data, reload, can }: { data: any; reload: () 
 
       <div className="card pad stack">
         <div>
-          <label className="f">Scoring notes <span className="muted">(the reasoning; shown before the number to readers)</span></label>
+          <label className="f">Reader interpretation <span className="muted">(D1-4LS v2.1, shown on the app and site; 2 to 4 sentences, bounded: no claims of truth, prophecy, or endorsement from the score)</span></label>
+          <textarea className="in" value={interpretation} disabled={!editable} onChange={(e) => { setInterpretation(e.target.value); setSaved(false); }} style={{ minHeight: 90 }} placeholder="Describe the profile's distinctive features, the key sourcing strength or limitation, and any boundary a reader might misread." />
+        </div>
+        <div>
+          <label className="f">Scoring notes <span className="muted">(internal reasoning)</span></label>
           <textarea className="in" value={notes} disabled={!editable} onChange={(e) => { setNotes(e.target.value); setSaved(false); }} style={{ minHeight: 70 }} />
         </div>
         <div>

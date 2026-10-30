@@ -142,9 +142,42 @@ export function computeIndexTotals(ind: IndicatorScores): IndexTotals {
   };
 }
 
-export function interpretTotal(total: number): "Exceptional" | "Strong" | "Moderate" | "Concerning" {
-  if (total >= 35) return "Exceptional";
-  if (total >= 28) return "Strong";
-  if (total >= 20) return "Moderate";
-  return "Concerning";
+// The instrument version this engine implements. Stamped onto every published
+// story so historical scores are never silently reinterpreted under a new rubric
+// (D1-4LS v2.1, Section 19).
+export const INSTRUMENT_VERSION = "2.1";
+
+// v2.1 presents the composite as a DESCRIPTIVE band, never an evaluative grade.
+// The four-index profile is the primary result; this band is a secondary summary
+// and must never be read as truth, probability, or overall quality.
+export type CompositeBandKey = "very-high" | "high" | "intermediate" | "low";
+export function compositeBand(total: number): { key: CompositeBandKey; label: string; short: string } {
+  if (total >= 35) return { key: "very-high", label: "Very high composite profile", short: "Very high" };
+  if (total >= 28) return { key: "high", label: "High composite profile", short: "High" };
+  if (total >= 20) return { key: "intermediate", label: "Intermediate composite profile", short: "Intermediate" };
+  return { key: "low", label: "Low composite profile", short: "Low" };
+}
+
+// Back-compat: returns the descriptive short band. Prefer compositeBand().
+export function interpretTotal(total: number): string {
+  return compositeBand(total).short;
+}
+
+// Source-credibility alert bands (v2.1, Section 7). SCI is the sourcing lens
+// (0-10). These are provisional editorial thresholds, not validated cutoffs, and
+// they never declare an article false.
+export type SciNoticeLevel = "none" | "limitation" | "warning";
+export function sciNotice(sciTotal: number): { level: SciNoticeLevel; text: string } {
+  if (sciTotal <= 3) return { level: "warning", text: "Evidence warning: this story has material sourcing limitations. Weigh its factual claims accordingly." };
+  if (sciTotal < 6) return { level: "limitation", text: "Sourcing limitation: read the Source Credibility notes before relying on this story's factual claims." };
+  return { level: "none", text: "" };
+}
+
+// Profile-balance descriptor from the spread of the four index totals (v2.1,
+// Section 12). Descriptive only; not a quality rating.
+export function profileBalance(totals: IndexTotals): { diff: number; label: string } {
+  const vals = [totals.biblicalAlignment, totals.propheticSignificance, totals.sourceCredibility, totals.humanities];
+  const diff = Math.max(...vals) - Math.min(...vals);
+  const label = diff <= 2 ? "Relatively balanced" : diff <= 5 ? "Moderately uneven" : "Highly uneven";
+  return { diff, label };
 }

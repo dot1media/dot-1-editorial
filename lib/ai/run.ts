@@ -42,7 +42,14 @@ async function alreadySeen(item: FeedItem): Promise<boolean> {
 
 async function insertDraft(article: GeneratedArticle, item: FeedItem, source: FeedSource): Promise<string> {
   const id = newId("story");
-  const scoreObj = { indicators: article.indicators, totals: article.totals, confidence: article.scoreConfidence };
+  const scoreObj = {
+    indicators: article.indicators,
+    totals: article.totals,
+    confidence: article.scoreConfidence,
+    interpretation: article.interpretation,
+    indexNotes: article.indexNotes,
+    instrumentVersion: "2.1",
+  };
 
   await sql`INSERT INTO stories (
     id, working_headline, final_headline, summary, body, classification, category, location,

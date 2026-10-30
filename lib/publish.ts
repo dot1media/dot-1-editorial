@@ -45,6 +45,7 @@ function prepare(story: EditorialStoryRow) {
   const ind = normalizeIndicators(story.scores?.indicators || {});
   const totals = computeIndexTotals(ind);
   const wc = wordCount(content);
+  const scores = story.scores || {};
   return {
     headline, summary, content, image,
     category: story.category || "world",
@@ -53,6 +54,10 @@ function prepare(story: EditorialStoryRow) {
     ind, confidence: story.score_confidence || "developing",
     bai: totals.biblicalAlignment, psi: totals.propheticSignificance,
     sci: totals.sourceCredibility, hii: totals.humanities,
+    // D1-4LS v2.1 metadata carried to the public record.
+    interpretation: String(scores.interpretation || "").slice(0, 1200),
+    scoreNotes: JSON.stringify(scores.indexNotes || {}),
+    instrumentVersion: String(scores.instrumentVersion || "2.1"),
   };
 }
 
@@ -70,6 +75,21 @@ async function ensureVerificationColumns(): Promise<void> {
   } catch { /* best effort; publish still works, the app defaults missing status to verified */ }
 }
 
+// D1-4LS v2.1 metadata columns on the news record. Added on first publish so the
+// app/site can show the written interpretation, per-index notes, and the
+// instrument version a story was scored under (never silently reinterpreted).
+let scoreMetaColsReady = false;
+async function ensureScoreMetaColumns(): Promise<void> {
+  if (scoreMetaColsReady) return;
+  const db = newsSql!;
+  try {
+    await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS d14ls_interpretation TEXT`;
+    await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS d14ls_index_notes JSONB`;
+    await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS d14ls_instrument_version TEXT`;
+    scoreMetaColsReady = true;
+  } catch { /* best effort; the app degrades gracefully when these are absent */ }
+}
+
 export async function publishToNews(
   story: EditorialStoryRow,
   authorLabel: string,
@@ -77,6 +97,7 @@ export async function publishToNews(
 ): Promise<{ newsStoryId: string; totalScore: number }> {
   assertNewsConfigured();
   await ensureVerificationColumns();
+  await ensureScoreMetaColumns();
   const db = newsSql!;
   const p = prepare(story);
   const i = p.ind;
@@ -112,7 +133,9 @@ export async function publishToNews(
       hii_christ_modeled_care = ${i.hiiChristModeledCare},
       score_confidence = ${p.confidence}, status = 'published',
       reviewed_at = COALESCE(reviewed_at, ${now}), is_dual_rated = ${dualRated},
-      verification_status = ${vStatus}, verification_override = ${vOverride}, updated_at = now()
+      verification_status = ${vStatus}, verification_override = ${vOverride},
+      d14ls_interpretation = ${p.interpretation}, d14ls_index_notes = ${p.scoreNotes}::jsonb, d14ls_instrument_version = ${p.instrumentVersion},
+      updated_at = now()
       WHERE id = ${newsId}`;
     return { newsStoryId: newsId, totalScore: total };
   }
@@ -126,7 +149,8 @@ export async function publishToNews(
       sci_primary_source_access, sci_verification, sci_transparency, sci_track_record, sci_editorial_standards,
       hii_human_dignity, hii_compassion_empathy, hii_societal_impact, hii_justice_responsibility, hii_christ_modeled_care,
       score_confidence, status, date, published_at, reviewed_at, is_dual_rated,
-      verification_status, verification_override
+      verification_status, verification_override,
+      d14ls_interpretation, d14ls_index_notes, d14ls_instrument_version
     ) VALUES (
       ${newsId}, ${p.headline}, ${p.summary}, ${p.content}, ${p.image}, ${p.category}, ${authorLabel}, ${[] as string[]},
       ${p.format}, ${p.wc}, ${p.readMin},
@@ -136,7 +160,8 @@ export async function publishToNews(
       ${i.sciPrimarySourceAccess}, ${i.sciVerification}, ${i.sciTransparency}, ${i.sciTrackRecord}, ${i.sciEditorialStandards},
       ${i.hiiHumanDignity}, ${i.hiiCompassionEmpathy}, ${i.hiiSocietalImpact}, ${i.hiiJusticeResponsibility}, ${i.hiiChristModeledCare},
       ${p.confidence}, 'published', ${now}, ${now}, ${now}, ${dualRated},
-      ${vStatus}, ${vOverride}
+      ${vStatus}, ${vOverride},
+      ${p.interpretation}, ${p.scoreNotes}::jsonb, ${p.instrumentVersion}
     )`;
   return { newsStoryId: newsId, totalScore: total };
 }
