@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { ensureSchema } from "@/lib/schema";
 import { requireCapability } from "@/lib/session";
 import { metaConfigured } from "@/lib/social/meta";
+import { xConfigured } from "@/lib/social/x";
 
 export const runtime = "nodejs";
 
@@ -20,5 +21,5 @@ export async function GET(req: Request) {
         CASE status WHEN 'draft' THEN 0 WHEN 'approved' THEN 1 WHEN 'scheduled' THEN 2 WHEN 'failed' THEN 3 ELSE 4 END,
         created_at DESC LIMIT 100`;
 
-  return NextResponse.json({ posts: rows, metaConfigured: metaConfigured() });
+  return NextResponse.json({ posts: rows, metaConfigured: metaConfigured(), xConfigured: xConfigured() });
 }

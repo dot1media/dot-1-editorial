@@ -8,7 +8,7 @@ import { CATEGORIES } from "@/lib/newsroom";
 export const runtime = "nodejs";
 
 const STATUSES = new Set(["draft", "approved", "scheduled", "posted", "failed"]);
-const TARGETS = new Set(["instagram", "facebook"]);
+const TARGETS = new Set(["instagram", "facebook", "x"]);
 const CATEGORY_SET = new Set<string>(CATEGORIES as readonly string[]);
 
 // Edit a queued post: captions, targets, status (approve), schedule time.
@@ -28,6 +28,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
   if (typeof b.caption_facebook === "string") {
     await sql`UPDATE social_posts SET caption_facebook=${b.caption_facebook}, updated_at=now() WHERE id=${id}`;
+  }
+  if (typeof b.caption_x === "string") {
+    await sql`UPDATE social_posts SET caption_x=${b.caption_x}, updated_at=now() WHERE id=${id}`;
   }
   if (Array.isArray(b.targets)) {
     const t = b.targets.filter((x: string) => TARGETS.has(x));

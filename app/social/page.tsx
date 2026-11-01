@@ -16,14 +16,18 @@ type Post = {
   image_url: string;
   caption_instagram: string;
   caption_facebook: string;
+  caption_x: string;
   targets: string[] | string;
   status: string;
   scheduled_at: string | null;
   posted_at: string | null;
   ig_post_id: string;
   fb_post_id: string;
+  x_post_id: string;
   error: string;
 };
+
+const TARGET_LABELS: Record<string, string> = { instagram: "Instagram", facebook: "Facebook", x: "X" };
 
 const STATUS_COLOR: Record<string, string> = {
   draft: "#8A8175",
@@ -40,15 +44,17 @@ function targetsOf(p: Post): string[] {
 export default function SocialPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [metaOk, setMetaOk] = useState(false);
+  const [xOk, setXOk] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState<string>("");
   const [note, setNote] = useState("");
 
   const load = useCallback(async () => {
     try {
-      const d = await api<{ posts: Post[]; metaConfigured: boolean }>("/api/social");
+      const d = await api<{ posts: Post[]; metaConfigured: boolean; xConfigured: boolean }>("/api/social");
       setPosts(d.posts);
       setMetaOk(d.metaConfigured);
+      setXOk(!!d.xConfigured);
     } catch (e: any) {
       setErr(e.message);
     }
@@ -101,11 +107,23 @@ export default function SocialPage() {
     patch(p.id, { targets: next });
   }
 
+  // At least one selected platform must be connected for "Post now" to do anything.
+  function canPost(tg: string[]): boolean {
+    const needsMeta = tg.includes("instagram") || tg.includes("facebook");
+    const needsX = tg.includes("x");
+    return (needsMeta && metaOk) || (needsX && xOk);
+  }
+
   return (
-    <Shell title="Social · Make Dot 1 Seen" subtitle="Branded posts from published stories, reviewed before they reach Instagram and Facebook">
+    <Shell title="Social · Make Dot 1 Seen" subtitle="Branded posts from published stories, reviewed before they reach Instagram, Facebook, and X">
       <div className="row-between" style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-        <div className="tiny" style={{ color: metaOk ? "#4CAF7D" : "#E0544B" }}>
-          {metaOk ? "Meta connected" : "Meta not configured (add META_PAGE_TOKEN in Vercel)"}
+        <div className="tiny" style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+          <span style={{ color: metaOk ? "#4CAF7D" : "#E0544B" }}>
+            {metaOk ? "Meta connected" : "Meta not configured (add META_PAGE_TOKEN in Vercel)"}
+          </span>
+          <span style={{ color: xOk ? "#4CAF7D" : "#8A8175" }}>
+            {xOk ? "X connected" : "X not configured (add X_API_KEY / X_API_SECRET / X_ACCESS_TOKEN / X_ACCESS_SECRET in Vercel)"}
+          </span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn ghost sm" onClick={load}>Refresh</button>
@@ -162,9 +180,10 @@ export default function SocialPage() {
                 </div>
 
                 <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                  {["instagram", "facebook"].map((t) => (
-                    <button key={t} className={"btn sm " + (tg.includes(t) ? "primary" : "ghost")} onClick={() => toggleTarget(p, t)}>
-                      {t === "instagram" ? "Instagram" : "Facebook"}
+                  {["instagram", "facebook", "x"].map((t) => (
+                    <button key={t} className={"btn sm " + (tg.includes(t) ? "primary" : "ghost")} onClick={() => toggleTarget(p, t)}
+                      title={t === "x" && !xOk ? "X is not configured yet" : undefined}>
+                      {TARGET_LABELS[t]}
                     </button>
                   ))}
                 </div>
@@ -177,21 +196,31 @@ export default function SocialPage() {
                 <textarea className="in" defaultValue={p.caption_facebook} style={{ width: "100%", minHeight: 96, marginBottom: 10, fontSize: 13 }}
                   onBlur={(e) => e.target.value !== p.caption_facebook && patch(p.id, { caption_facebook: e.target.value })} />
 
+                {tg.includes("x") && (
+                  <>
+                    <label className="mini">X POST {(p.caption_x || "").length > 280 && <span style={{ color: "#E0544B" }}>· {(p.caption_x || "").length}/280 over limit</span>}</label>
+                    <textarea className="in" defaultValue={p.caption_x} style={{ width: "100%", minHeight: 72, marginBottom: 10, fontSize: 13 }}
+                      onBlur={(e) => e.target.value !== p.caption_x && patch(p.id, { caption_x: e.target.value })} />
+                  </>
+                )}
+
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   {p.status === "draft" && <button className="btn gold sm" onClick={() => approve(p.id)} disabled={busy === p.id}>Approve</button>}
                   {(p.status === "approved" || p.status === "scheduled") && <button className="btn ghost sm" onClick={() => unapprove(p.id)} disabled={busy === p.id}>Unapprove</button>}
                   <input type="datetime-local" className="in" style={{ padding: "6px 8px", fontSize: 12.5, width: 210 }}
                     defaultValue={p.scheduled_at ? new Date(p.scheduled_at).toISOString().slice(0, 16) : ""}
                     onChange={(e) => schedule(p.id, e.target.value)} />
-                  <button className="btn primary sm" onClick={() => postNow(p.id)} disabled={busy === p.id || !metaOk || tg.length === 0}>
+                  <button className="btn primary sm" onClick={() => postNow(p.id)}
+                    disabled={busy === p.id || tg.length === 0 || !canPost(tg)}
+                    title={!canPost(tg) ? "None of the selected platforms are connected" : undefined}>
                     {busy === p.id ? "Working…" : "Post now"}
                   </button>
                   <button className="btn ghost sm" onClick={() => remove(p.id)} disabled={busy === p.id} style={{ marginLeft: "auto", color: "#E0544B" }}>Delete</button>
                 </div>
 
-                {(p.ig_post_id || p.fb_post_id) && (
+                {(p.ig_post_id || p.fb_post_id || p.x_post_id) && (
                   <div className="tiny muted" style={{ marginTop: 8 }}>
-                    {p.ig_post_id ? `IG posted (${p.ig_post_id}) ` : ""}{p.fb_post_id ? `FB posted (${p.fb_post_id})` : ""}
+                    {p.ig_post_id ? `IG posted (${p.ig_post_id}) ` : ""}{p.fb_post_id ? `FB posted (${p.fb_post_id}) ` : ""}{p.x_post_id ? `X posted (${p.x_post_id})` : ""}
                   </div>
                 )}
                 {p.error && <div className="tiny" style={{ marginTop: 8, color: "#E0544B" }}>{p.error}</div>}

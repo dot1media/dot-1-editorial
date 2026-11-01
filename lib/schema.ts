@@ -369,6 +369,9 @@ export async function ensureSchema(): Promise<void> {
   await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_social_posts_story ON social_posts(news_story_id)`;
   // Added after first deploy: the card style (a/b), alternated for a varied grid.
   await sql`ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS style TEXT DEFAULT 'a'`;
+  // X (formerly Twitter) as a third target: its own caption and returned post id.
+  await sql`ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS caption_x TEXT DEFAULT ''`;
+  await sql`ALTER TABLE social_posts ADD COLUMN IF NOT EXISTS x_post_id TEXT DEFAULT ''`;
 
   ensured = true;
 }

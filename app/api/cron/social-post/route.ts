@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { ensureSchema, audit } from "@/lib/schema";
 import { metaConfigured } from "@/lib/social/meta";
+import { xConfigured } from "@/lib/social/x";
 import { publishPost, editorialOrigin } from "@/lib/social/post";
 
 export const runtime = "nodejs";
@@ -35,7 +36,7 @@ function localHour(tz: string): number {
 
 export async function GET(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: "Not authorized." }, { status: 401 });
-  if (!metaConfigured()) return NextResponse.json({ error: "Meta not configured." }, { status: 503 });
+  if (!metaConfigured() && !xConfigured()) return NextResponse.json({ error: "No social platform configured." }, { status: 503 });
   await ensureSchema();
 
   // 1. Explicitly scheduled items that are due go first, regardless of windows.

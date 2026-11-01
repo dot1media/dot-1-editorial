@@ -16,7 +16,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const result = await publishPost(id, editorialOrigin(req));
   await audit(account.email, result.ok ? "social.posted" : "social.post_failed", "social", id, {
-    igPostId: result.igPostId, fbPostId: result.fbPostId, error: result.error,
+    igPostId: result.igPostId, fbPostId: result.fbPostId, xPostId: result.xPostId, error: result.error,
   });
 
   if (!result.ok) return NextResponse.json(result, { status: 502 });

@@ -55,9 +55,9 @@ export async function POST(req: Request) {
     const id = `sp_${crypto.randomBytes(8).toString("base64url")}`;
     await sql`
       INSERT INTO social_posts (id, news_story_id, headline, summary, category, verification_status, style, image_url,
-        caption_instagram, caption_facebook, targets, status, created_by)
+        caption_instagram, caption_facebook, caption_x, targets, status, created_by)
       VALUES (${id}, ${s.id}, ${s.title}, ${s.summary || ""}, ${s.category || ""}, ${s.verification_status}, ${style},
-        ${s.image}, ${caps.instagram}, ${caps.facebook}, ${JSON.stringify(["instagram", "facebook"])}, 'draft', ${account.email})
+        ${s.image}, ${caps.instagram}, ${caps.facebook}, ${caps.x}, ${JSON.stringify(["instagram", "facebook"])}, 'draft', ${account.email})
     `;
     created.push({ id, headline: s.title });
   }

@@ -17,6 +17,7 @@ export interface CaptionStory {
 export interface Captions {
   instagram: string;
   facebook: string;
+  x: string;
 }
 
 /** Enforce the house dash rule and tidy whitespace. No em or en dashes in prose. */
@@ -80,5 +81,14 @@ export function buildCaptions(story: CaptionStory): Captions {
     tags,
   ].join("\n");
 
-  return { instagram, facebook };
+  // X caps posts at 280 characters, and any URL counts as 23 (t.co wrapping),
+  // so budget the lead against a fixed reserve for the link and a short tag set.
+  const xTags = "#Dot1News #Alaska";
+  const URL_WEIGHT = 23;
+  const reserve = URL_WEIGHT + xTags.length + 4; // link + tags + the newlines joining them
+  let xBody = body;
+  if (xBody.length > 280 - reserve) xBody = xBody.slice(0, 280 - reserve - 1).trimEnd() + "…";
+  const x = `${xBody}\n${url}\n${xTags}`;
+
+  return { instagram, facebook, x };
 }
