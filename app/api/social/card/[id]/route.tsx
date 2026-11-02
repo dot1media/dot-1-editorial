@@ -23,7 +23,6 @@ const MUTED = "#9A9186";
 const HAIR = "#2A2520";
 
 const VCOL: Record<string, string> = { verified: GOLD, pending: "#E08A2B", unverified: "#C8372A" };
-const VLABEL: Record<string, string> = { verified: "Verified", pending: "Pending verification", unverified: "Unverified" };
 
 async function asset(origin: string, name: string): Promise<ArrayBuffer> {
   const res = await fetch(new URL(`/social-assets/${name}`, origin));
@@ -96,7 +95,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const style = (url.searchParams.get("style") || post.style || "a").toLowerCase();
   const vstatus = (post.verification_status || "verified") as string;
   const vcol = VCOL[vstatus] || GOLD;
-  const vlabel = VLABEL[vstatus] || "Verified";
   const category = String(post.category || "News").toUpperCase();
   const headline = String(post.headline || "");
   const summary = String(post.summary || "");
@@ -148,7 +146,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const VLine = (
     <div style={{ display: "flex", alignItems: "center" }}>
       <div style={{ width: 14, height: 14, borderRadius: 999, backgroundColor: vcol }} />
-      <span style={{ fontFamily: "Archivo", fontWeight: 600, color: MUTED, fontSize: 18, marginLeft: 10 }}>{vlabel} · Dot 1 Newsroom</span>
+      <span style={{ fontFamily: "Archivo", fontWeight: 600, color: MUTED, fontSize: 18, marginLeft: 10 }}>Dot 1 Newsroom</span>
     </div>
   );
 
