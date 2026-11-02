@@ -34,7 +34,10 @@ function sameEvent(a: Set<string>, b: Set<string>): boolean {
   if (inter === 0) return false;
   const union = a.size + b.size - inter;
   const jaccard = union ? inter / union : 0;
-  return inter >= 3 || jaccard >= 0.34;
+  if (inter >= 3 || jaccard >= 0.34) return true;
+  // Short headlines that share two distinctive words are likely the same event.
+  if (inter >= 2 && Math.min(a.size, b.size) <= 4) return true;
+  return false;
 }
 function sciScore(s: FeedSource): number {
   return s.sciBaseline.transparency + s.sciBaseline.trackRecord + s.sciBaseline.editorialStandards;
