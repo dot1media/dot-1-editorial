@@ -27,6 +27,7 @@ export interface EditorialStoryRow {
   verification_override?: boolean | null;
   source_url?: string | null;
   source_name?: string | null;
+  citations?: any;
   hero_image_credit?: string | null;
   hero_image_rights_restricted?: boolean | null;
 }
@@ -77,7 +78,25 @@ function prepare(story: EditorialStoryRow) {
     imageRightsRestricted: rightsRestricted,
     sourceUrl: String(story.source_url || "").trim().slice(0, 1000),
     sourceName: String(story.source_name || "").trim().slice(0, 200),
+    citations: normalizeCitations(story.citations),
   };
+}
+
+/** The citations column may arrive as a JS array (JSONB) or a JSON string.
+ *  Return a clean array of {title,url,source} with http(s) URLs only. */
+function normalizeCitations(raw: any): { title?: string; url: string; source?: string }[] {
+  let c = raw;
+  if (typeof c === "string") { try { c = JSON.parse(c); } catch { c = null; } }
+  if (!Array.isArray(c)) return [];
+  const seen = new Set<string>();
+  const out: { title?: string; url: string; source?: string }[] = [];
+  for (const x of c) {
+    const url = String(x?.url || "").trim();
+    if (!url || !/^https?:\/\//i.test(url) || seen.has(url)) continue;
+    seen.add(url);
+    out.push({ url: url.slice(0, 1000), title: x?.title ? String(x.title).slice(0, 300) : undefined, source: x?.source ? String(x.source).slice(0, 200) : undefined });
+  }
+  return out;
 }
 
 // The verification columns live in the news database too. Add them on first publish
@@ -111,6 +130,7 @@ async function ensureScoreMetaColumns(): Promise<void> {
     await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS image_credit TEXT`;
     await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS image_credit_url TEXT`;
     await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS image_rights_restricted BOOLEAN NOT NULL DEFAULT false`;
+    await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS citations JSONB`;
     scoreMetaColsReady = true;
   } catch { /* best effort; the app degrades gracefully when these are absent */ }
 }
@@ -160,7 +180,7 @@ export async function publishToNews(
       reviewed_at = COALESCE(reviewed_at, ${now}), is_dual_rated = ${dualRated},
       verification_status = ${vStatus}, verification_override = ${vOverride},
       d14ls_interpretation = ${p.interpretation}, d14ls_index_notes = ${p.scoreNotes}::jsonb, d14ls_instrument_version = ${p.instrumentVersion},
-      source_url = ${p.sourceUrl}, source_name = ${p.sourceName},
+      source_url = ${p.sourceUrl}, source_name = ${p.sourceName}, citations = ${JSON.stringify(p.citations)}::jsonb,
       image_credit = ${p.imageCredit}, image_rights_restricted = ${p.imageRightsRestricted},
       updated_at = now()
       WHERE id = ${newsId}`;
@@ -178,7 +198,7 @@ export async function publishToNews(
       score_confidence, status, date, published_at, reviewed_at, is_dual_rated,
       verification_status, verification_override,
       d14ls_interpretation, d14ls_index_notes, d14ls_instrument_version,
-      source_url, source_name, image_credit, image_rights_restricted
+      source_url, source_name, citations, image_credit, image_rights_restricted
     ) VALUES (
       ${newsId}, ${p.headline}, ${p.summary}, ${p.content}, ${p.image}, ${p.category}, ${authorLabel}, ${[] as string[]},
       ${p.format}, ${p.wc}, ${p.readMin},
@@ -190,7 +210,7 @@ export async function publishToNews(
       ${p.confidence}, 'published', ${now}, ${now}, ${now}, ${dualRated},
       ${vStatus}, ${vOverride},
       ${p.interpretation}, ${p.scoreNotes}::jsonb, ${p.instrumentVersion},
-      ${p.sourceUrl}, ${p.sourceName}, ${p.imageCredit}, ${p.imageRightsRestricted}
+      ${p.sourceUrl}, ${p.sourceName}, ${JSON.stringify(p.citations)}::jsonb, ${p.imageCredit}, ${p.imageRightsRestricted}
     )`;
   return { newsStoryId: newsId, totalScore: total };
 }

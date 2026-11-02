@@ -84,17 +84,35 @@ export function humanizeProse(input: string): string {
   return t.trim();
 }
 
-function buildTemplateArticle(item: FeedItem, source: FeedSource): GeneratedArticle {
+/** One outlet's coverage of an event. A story is written from one or more of these. */
+export interface SourceMember { item: FeedItem; source: FeedSource; }
+
+/** Build the citations JSON (one entry per distinct source URL) from the members. */
+function citationsFrom(members: SourceMember[]): string {
+  const seen = new Set<string>();
+  const out: { title: string; url: string; source: string }[] = [];
+  for (const m of members) {
+    const url = String(m.item.link || '').trim();
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    out.push({ title: m.item.title, url, source: m.source.name });
+  }
+  return JSON.stringify(out);
+}
+
+function buildTemplateArticle(members: SourceMember[]): GeneratedArticle {
+  const { item, source } = members[0];
   const snippet = item.description || 'Read the full report at the source below.';
   const summary = snippet.length > 280 ? snippet.slice(0, 277) + '…' : snippet;
 
+  const outletList = members.map((m) => m.source.name).join(', ');
   const content = [
-    `Curated brief, via ${source.name}`,
+    `Curated brief, via ${outletList}`,
     '',
     snippet,
     '',
-    `This item was automatically curated from ${source.name}. Read the full original report for complete details and context:`,
-    item.link,
+    `This item was automatically curated from ${members.length > 1 ? 'these outlets' : source.name}. Read the full original reports, linked below, for complete details and context:`,
+    ...members.map((m) => m.item.link),
     '',
     `This brief is pending full editorial review under the D1-4LS dual-rater protocol.`,
   ].join('\n');
@@ -121,7 +139,7 @@ function buildTemplateArticle(item: FeedItem, source: FeedSource): GeneratedArti
     image: item.imageUrl || fallbackImageFor(source.category, item.link),
     imageCredit: '',
     tags: [source.category, 'curated'],
-    citations: JSON.stringify([{ title: item.title, url: item.link, source: source.name }]),
+    citations: citationsFrom(members),
     editorNote: '',
     claims: [],
     indicators,
@@ -188,7 +206,14 @@ const ARTICLE_INDICATORS = [
   'hiiHumanDignity', 'hiiCompassionEmpathy', 'hiiSocietalImpact', 'hiiJusticeResponsibility', 'hiiChristModeledCare',
 ] as const;
 
-function buildWriterPrompt(item: FeedItem, source: FeedSource): string {
+function buildWriterPrompt(members: SourceMember[]): string {
+  const primary = members[0];
+  const multi = members.length > 1;
+  const sourceBlock = members
+    .map((m, i) => `[${i + 1}] ${m.source.name}\n    Headline: ${m.item.title}\n    Summary: ${m.item.description || '(none provided)'}\n    URL: ${m.item.link}`)
+    .join('\n');
+  const otherOutlets = members.slice(1).map((m) => m.source.name).join(', ');
+
   return `You are the staff writer for "Dot 1 News", a Christian news platform whose credibility rests on measured, verifiable reporting. You write the brief ONLY. A separate assessor will score it.
 
 EDITORIAL THESIS (governs everything you write): ${EDITORIAL_THESIS.mission}
@@ -205,20 +230,19 @@ VOICE AND STYLE (this is what makes the writing read like a person, not a machin
 - Avoid the tells of machine writing. Do not use "moreover", "furthermore", "in conclusion", "it is worth noting", "sent shockwaves", "in the wake of", "underscores", "highlights the importance of", "delve", "a stark reminder", "landscape", or "tapestry". Prefer plain, denotative verbs.
 - No throat-clearing and no stacked hedges. Open with the fact.
 
-SOURCE ITEM (your ONLY factual material):
-- Outlet: ${source.name}
-- Headline: ${item.title}
-- Feed summary: ${item.description || '(none provided)'}
-- URL: ${item.link}
-- Published: ${item.publishedAt ? item.publishedAt.toISOString() : 'unknown'}
-- App category: ${source.category}
+${multi ? `SOURCE REPORTING (your ONLY factual material). ${members.length} outlets are reporting the same event:` : 'SOURCE ITEM (your ONLY factual material):'}
+${sourceBlock}
+- Published around: ${primary.item.publishedAt ? primary.item.publishedAt.toISOString() : 'unknown'}
+- App category: ${primary.source.category}
 
 Your charter:
 
-0. HEADLINE DISCIPLINE: the source headline may be sensational. Your rewritten title must be calm, clear, and substantive. Describe what actually happened, not the shock of it. Strip words engineered for a jolt (slams, shocking, chaos, bombshell, and the like). A reader should trust the headline is not manipulating them.
-1. STRUCTURE it in this order, without printing these labels: what happened (lede, one to two paragraphs), then key context or why now, then who is affected and what is at stake, then what remains disputed, unknown, or unverified. If the source is thin, write SHORTER rather than padding. Never invent names, numbers, quotes, dates, locations, or events absent from the source item.
-2. ATTRIBUTION: credit ${source.name} within the first two paragraphs ("according to ${source.name}", "the outlet reports").
-3. LOADED-LANGUAGE AUDIT: before finalizing, re-read your draft and strip adjectives and verbs that smuggle judgment (for example slammed, radical, so-called, shocking, extremist) unless they appear inside an attributed quote from the source. Prefer denotative verbs: said, announced, reported, ruled.
+0. HEADLINE DISCIPLINE: the source headlines may be sensational. Your rewritten title must be calm, clear, and substantive. Describe what actually happened, not the shock of it. Strip words engineered for a jolt (slams, shocking, chaos, bombshell, and the like). A reader should trust the headline is not manipulating them.
+1. STRUCTURE it in this order, without printing these labels: what happened (lede, one to two paragraphs), then key context or why now, then who is affected and what is at stake, then what remains disputed, unknown, or unverified. If the sources are thin, write SHORTER rather than padding. Never invent names, numbers, quotes, dates, locations, or events absent from the source material.
+${multi
+  ? `2. SYNTHESIS AND ATTRIBUTION: these outlets are covering the same event. Write ONE account from what they report together, grounded only in the material above. Where the outlets agree, you may report it plainly and credit them by name (for example "as ${primary.source.name}, ${otherOutlets}, and others report"). Where they differ, add a detail the others omit, or only one outlet asserts something, say which outlet and note the difference. Making the reader see how the coverage converges and diverges is the point, so include at least one such comparison when the sources allow it. Never present a claim only one outlet makes as established fact without attributing it to that outlet.`
+  : `2. ATTRIBUTION: credit ${primary.source.name} within the first two paragraphs ("according to ${primary.source.name}", "the outlet reports").`}
+3. LOADED-LANGUAGE AUDIT: before finalizing, re-read your draft and strip adjectives and verbs that smuggle judgment (for example slammed, radical, so-called, shocking, extremist) unless they appear inside an attributed quote from a source. Prefer denotative verbs: said, announced, reported, ruled.
 4. GENUINE DISPUTES: where the story involves contested positions, render the strongest honest version of each side's stated reasoning in one sentence each. This is fairness on real disputes. Do not manufacture balance on settled facts.
 5. TONAL FIREWALL: the brief above is measured reportage, with no sermonizing, no editorial adjectives, and no us-versus-them framing. Your Christian editorial voice lives ONLY in the closing section.
 
@@ -236,7 +260,8 @@ OUTPUT, ONLY a JSON object, no fences, no preamble:
 }`;
 }
 
-function buildScorerPrompt(item: FeedItem, source: FeedSource, draft: WriterOutput): string {
+function buildScorerPrompt(members: SourceMember[], draft: WriterOutput): string {
+  const primary = members[0];
   return `You are the independent D1-4LS assessor for "Dot 1 News". You did NOT write the brief below — assess it skeptically. Eloquence is not evidence: score the story AS SOURCED, and penalize gaps the writing papers over.
 
 D1-4LS v2.1 INTERPRETATION PRINCIPLES (govern your scoring AND your written interpretation):
@@ -246,10 +271,9 @@ D1-4LS v2.1 INTERPRETATION PRINCIPLES (govern your scoring AND your written inte
 - Non-endorsement: a high score never endorses the people, actions, or institutions in the story. Reporting accurately on an unethical act does not make the report unethical.
 - Separation: keep theological interpretation distinct from factual verification; distinguish a story's SUBJECT from its editorial TREATMENT.
 
-ORIGINAL SOURCE ITEM:
-- Outlet: ${source.name}
-- Headline: ${item.title}
-- Feed summary: ${item.description || '(none provided)'}
+ORIGINAL SOURCE REPORTING (${members.length} outlet${members.length > 1 ? 's' : ''} on this event):
+${members.map((m, i) => `[${i + 1}] ${m.source.name}: ${m.item.title}`).join('\n')}
+${members.length > 1 ? 'Independent corroboration counts for SCI: when several outlets report the same facts, sciVerification should reflect that; when a claim rests on only one, it should not.' : ''}
 
 THE BRIEF UNDER ASSESSMENT:
 ${draft.body}
@@ -268,7 +292,7 @@ ALSO produce:
 - "indexNotes": ONE plain-English sentence per index, written for ordinary readers, explaining what drove that lens's result for THIS story (no jargon, no indicator names).
 - "interpretation": a bounded, reader-facing interpretation of the WHOLE profile, 2 to 4 sentences, following this template: (1) name the profile's most distinctive supported features and which lenses they come from; (2) state the most important sourcing strength or limitation using SCI; (3) clarify any theological, prophetic, or human-impact boundary a reader might misread (for example that low PSI is not weak journalism, or a high score is not an endorsement). Every clause must trace to a rationale above. Make NO claim of factual certainty, prophetic fulfillment, endorsement, or overall quality from the total. No em-dashes, no markdown.
 - "confidence": "low" if the source summary is under ~40 words or claims are uncorroborated; "moderate" for typical single-outlet reporting; "high" only when the item itself contains primary/corroborated material.
-- "claims": the 3 to 6 most important FACTUAL assertions the brief makes that an editor must verify before publication (names, numbers, dates, events, direct quotes, causal or attributive claims). Quote or closely paraphrase each from the brief; do NOT invent any claim that is not in the brief. For each, set "source" to the outlet the brief attributes it to (default "${source.name}"). If the brief makes no checkable factual claims, return an empty array.
+- "claims": the 3 to 6 most important FACTUAL assertions the brief makes that an editor must verify before publication (names, numbers, dates, events, direct quotes, causal or attributive claims). Quote or closely paraphrase each from the brief; do NOT invent any claim that is not in the brief. For each, set "source" to the outlet the brief attributes it to (default "${primary.source.name}"). If the brief makes no checkable factual claims, return an empty array.
 
 OUTPUT — ONLY a JSON object, no fences:
 {
@@ -279,7 +303,7 @@ OUTPUT — ONLY a JSON object, no fences:
   "indexNotes": {"BAI": "one sentence", "PSI": "one sentence", "SCI": "one sentence", "HII": "one sentence"},
   "interpretation": "2 to 4 sentences per the template above",
   "confidence": "low|moderate|high",
-  "claims": [{"claim": "a factual assertion taken from the brief", "source": "${source.name}"}]
+  "claims": [{"claim": "a factual assertion taken from the brief", "source": "${primary.source.name}"}]
 }`;
 }
 
@@ -382,11 +406,11 @@ function neutralIndicators(source: FeedSource): IndicatorScores {
 }
 
 function buildTwoPassArticle(
-  item: FeedItem,
-  source: FeedSource,
+  members: SourceMember[],
   draft: WriterOutput,
   scored: ScorerOutput | null,
 ): GeneratedArticle {
+  const { item, source } = members[0];
   const indicators = scored
     ? normalizeIndicators({
         ...Object.fromEntries(ARTICLE_INDICATORS.map((k) => [k, scored.indicators[k].score])),
@@ -413,7 +437,7 @@ function buildTwoPassArticle(
     image: item.imageUrl || fallbackImageFor(source.category, item.link),
     imageCredit: '',
     tags: draft.tags,
-    citations: JSON.stringify([{ title: item.title, url: item.link, source: source.name }]),
+    citations: citationsFrom(members),
     claims: scored?.claims ?? [],
     indicators,
     totals: computeIndexTotals(indicators),
@@ -439,7 +463,11 @@ export async function generateArticle(
   item: FeedItem,
   source: FeedSource,
   aiTimeoutMs = 80000,
+  related: SourceMember[] = [],
 ): Promise<GeneratedArticle> {
+  // The primary source leads; any related outlets' coverage of the same event
+  // is synthesized in and cited alongside it.
+  const members: SourceMember[] = [{ item, source }, ...related];
   // Prefer the outlet's own photojournalism: if the feed carried no image,
   // pull the article page's og:image before any generic fallback. Best-effort;
   // any failure leaves the category fallback in place.
@@ -451,21 +479,21 @@ export async function generateArticle(
   if (apiKey) {
     const started = Date.now();
     const writerBudget = Math.min(45000, Math.floor(aiTimeoutMs * 0.55));
-    const rawWriter = await callAnthropic(buildWriterPrompt(item, source), apiKey, writerBudget, 1700, ANTHROPIC_MODEL);
+    const rawWriter = await callAnthropic(buildWriterPrompt(members), apiKey, writerBudget, 1700, ANTHROPIC_MODEL);
     const draft = validateWriter(rawWriter);
     if (draft) {
       const remaining = aiTimeoutMs - (Date.now() - started) - 1500;
       const scorerBudget = Math.max(8000, Math.min(30000, remaining));
-      const rawScorer = await callAnthropic(buildScorerPrompt(item, source, draft), apiKey, scorerBudget, 2300, ANTHROPIC_MODEL_SCORER);
+      const rawScorer = await callAnthropic(buildScorerPrompt(members, draft), apiKey, scorerBudget, 2300, ANTHROPIC_MODEL_SCORER);
       const scored = validateScorer(rawScorer);
       if (!scored) console.warn(`⚖️  Scorer pass unavailable for "${draft.title.slice(0, 50)}" — neutral baseline applied`);
-      console.log(`✍️  2-pass ${scored ? 'complete' : 'degraded'} in ${Date.now() - started}ms: "${draft.title.slice(0, 50)}"`);
-      article = buildTwoPassArticle(item, source, draft, scored);
+      console.log(`✍️  2-pass ${scored ? 'complete' : 'degraded'} (${members.length} source${members.length > 1 ? 's' : ''}) in ${Date.now() - started}ms: "${draft.title.slice(0, 50)}"`);
+      article = buildTwoPassArticle(members, draft, scored);
     } else {
       console.warn(`✍️  Writer pass failed for "${item.title.slice(0, 50)}" — falling back to template`);
     }
   }
-  if (!article) article = buildTemplateArticle(item, source);
+  if (!article) article = buildTemplateArticle(members);
 
   // No outlet photo (feed or og:image)? Find a relevant, license-clear image and
   // credit it. On any miss, the branded category fallback already on the article stays.

@@ -109,7 +109,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://feeds.bbci.co.uk/news/world/rss.xml',
     category: 'world',
     sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'npr-politics',
@@ -141,7 +141,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://www.theguardian.com/culture/rss',
     category: 'culture',
     sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'ars-technica',
@@ -149,7 +149,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://feeds.arstechnica.com/arstechnica/index',
     category: 'technology',
     sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'bbc-health',
@@ -157,7 +157,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://feeds.bbci.co.uk/news/health/rss.xml',
     category: 'health',
     sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'bbc-business',
@@ -165,7 +165,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://feeds.bbci.co.uk/news/business/rss.xml',
     category: 'business',
     sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'guardian-environment',
@@ -173,7 +173,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://www.theguardian.com/environment/rss',
     category: 'environment',
     sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
   },
 
   // ── Expanded roster ──────────────────────────────────────────────────
@@ -188,7 +188,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://feeds.nbcnews.com/nbcnews/public/world',
     category: 'world',
     sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'npr-world',
@@ -196,7 +196,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://feeds.npr.org/1004/rss.xml',
     category: 'world',
     sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'aljazeera',
@@ -204,7 +204,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://www.aljazeera.com/xml/rss/all.xml',
     category: 'world',
     sciBaseline: { transparency: 2, trackRecord: 1, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
   },
 
   // Faith (broadened, spanning traditions and editorial postures)
@@ -266,7 +266,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://feeds.npr.org/1008/rss.xml',
     category: 'culture',
     sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
   },
 
   // Technology
@@ -276,7 +276,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://www.theverge.com/rss/index.xml',
     category: 'technology',
     sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'techcrunch',
@@ -284,7 +284,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://techcrunch.com/feed/',
     category: 'technology',
     sciBaseline: { transparency: 2, trackRecord: 1, editorialStandards: 1 },
-    enabled: false,
+    enabled: true,
   },
 
   // Health
@@ -294,7 +294,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://feeds.npr.org/1128/rss.xml',
     category: 'health',
     sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
   },
 
   // Business
@@ -304,7 +304,7 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://feeds.npr.org/1006/rss.xml',
     category: 'business',
     sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
   },
 
   // Environment / Science
@@ -314,7 +314,133 @@ export const DEFAULT_FEEDS: FeedSource[] = [
     url: 'https://www.nasa.gov/feed/',
     category: 'environment',
     sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
-    enabled: false,
+    enabled: true,
+  },
+
+  // ── Wider spectrum ───────────────────────────────────────────────────
+  // Added so a single event is usually covered by several outlets across the
+  // spectrum, which is what lets us require three sources per story and show
+  // readers how differently outlets frame the same facts. SCI baselines are
+  // honest outlet-level starting points; refine them as your assessment does.
+  {
+    id: 'cbs-news',
+    name: 'CBS News',
+    url: 'https://www.cbsnews.com/latest/rss/main',
+    category: 'world',
+    sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
+    enabled: true,
+  },
+  {
+    id: 'abc-news',
+    name: 'ABC News',
+    url: 'https://feeds.abcnews.com/abcnews/topstories',
+    category: 'world',
+    sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
+    enabled: true,
+  },
+  {
+    id: 'usa-today',
+    name: 'USA Today',
+    url: 'https://rssfeeds.usatoday.com/usatoday-NewsTopStories',
+    category: 'world',
+    sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
+    enabled: true,
+  },
+  {
+    id: 'politico',
+    name: 'Politico',
+    url: 'https://rss.politico.com/politics-news.xml',
+    category: 'politics',
+    sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
+    enabled: true,
+  },
+  {
+    id: 'axios',
+    name: 'Axios',
+    url: 'https://api.axios.com/feed/',
+    category: 'politics',
+    sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
+    enabled: true,
+  },
+  {
+    id: 'guardian-us',
+    name: 'The Guardian — US',
+    url: 'https://www.theguardian.com/us-news/rss',
+    category: 'politics',
+    sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
+    enabled: true,
+  },
+  {
+    id: 'fox-news',
+    name: 'Fox News',
+    url: 'https://moxie.foxnews.com/google-publisher/latest.xml',
+    category: 'politics',
+    sciBaseline: { transparency: 2, trackRecord: 1, editorialStandards: 1 },
+    enabled: true,
+  },
+  {
+    id: 'national-review',
+    name: 'National Review',
+    url: 'https://www.nationalreview.com/feed/',
+    category: 'politics',
+    sciBaseline: { transparency: 2, trackRecord: 1, editorialStandards: 1 },
+    enabled: true,
+  },
+  {
+    id: 'washington-examiner',
+    name: 'Washington Examiner',
+    url: 'https://www.washingtonexaminer.com/feed',
+    category: 'politics',
+    sciBaseline: { transparency: 1, trackRecord: 1, editorialStandards: 1 },
+    enabled: true,
+  },
+  {
+    id: 'vox',
+    name: 'Vox',
+    url: 'https://www.vox.com/rss/index.xml',
+    category: 'culture',
+    sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 1 },
+    enabled: true,
+  },
+  {
+    id: 'the-atlantic',
+    name: 'The Atlantic',
+    url: 'https://www.theatlantic.com/feed/all/',
+    category: 'culture',
+    sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
+    enabled: true,
+  },
+  {
+    id: 'cnbc',
+    name: 'CNBC',
+    url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html',
+    category: 'business',
+    sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
+    enabled: true,
+  },
+  {
+    id: 'dw',
+    name: 'Deutsche Welle',
+    url: 'https://rss.dw.com/rdf/rss-en-all',
+    category: 'world',
+    sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 2 },
+    enabled: true,
+  },
+  {
+    id: 'france24',
+    name: 'France 24',
+    url: 'https://www.france24.com/en/rss',
+    category: 'world',
+    sciBaseline: { transparency: 2, trackRecord: 2, editorialStandards: 1 },
+    enabled: true,
+  },
+  {
+    id: 'ncregister',
+    name: 'National Catholic Register',
+    url: 'https://www.ncregister.com/rss/section/cna',
+    category: 'faith',
+    sciBaseline: { transparency: 1, trackRecord: 1, editorialStandards: 1 },
+    enabled: true,
   },
 ];
 
