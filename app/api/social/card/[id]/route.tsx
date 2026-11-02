@@ -31,6 +31,53 @@ async function asset(origin: string, name: string): Promise<ArrayBuffer> {
   return res.arrayBuffer();
 }
 
+// Prepare the article photo at the exact pixel size of the region it fills (at
+// 2x render scale), cover-cropped with a high-quality kernel and lightly
+// sharpened, then handed to satori as a data URI. This takes resampling out of
+// satori's hands so the photo is as crisp as the source allows, and is encoded
+// at full target density rather than being naively stretched. Best effort: any
+// failure falls back to the original URL so a card still renders.
+// Many feeds hand us a resized thumbnail rather than the full-size original.
+// Strip the common resize markers so the origin serves the full image; if that
+// variant does not exist (or is signature-protected), we fall back to the URL
+// as given. Only resize params are touched, so a signed URL simply 404s and we
+// retry the original.
+function fullSizeCandidate(src: string): string {
+  try {
+    const u = new URL(src);
+    // WordPress and similar: name-1024x576.jpg -> name.jpg
+    u.pathname = u.pathname.replace(/-\d{2,4}x\d{2,4}(\.[a-z0-9]+)$/i, "$1");
+    for (const k of ["w", "h", "width", "height", "resize", "fit", "crop", "dpr", "max-w", "max-h"]) {
+      u.searchParams.delete(k);
+    }
+    return u.toString();
+  } catch {
+    return src;
+  }
+}
+
+async function preparePhoto(src: string, targetW: number, targetH: number): Promise<string> {
+  if (!src) return src;
+  const candidates = Array.from(new Set([fullSizeCandidate(src), src]));
+  for (const candidate of candidates) {
+    try {
+      const res = await fetch(candidate);
+      if (!res.ok) continue;
+      const input = Buffer.from(await res.arrayBuffer());
+      const out = await sharp(input)
+        .rotate()
+        .resize(targetW, targetH, { fit: "cover", position: "attention", kernel: "lanczos3", withoutEnlargement: false })
+        .sharpen({ sigma: 0.6 })
+        .jpeg({ quality: 86, mozjpeg: true })
+        .toBuffer();
+      return `data:image/jpeg;base64,${out.toString("base64")}`;
+    } catch {
+      /* try the next candidate */
+    }
+  }
+  return src;
+}
+
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const url = new URL(req.url);
@@ -42,6 +89,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const post = rows[0];
 
   const W = 1080, H = 1350;
+  // Render at 2x so vector text, logos and rules stay razor-sharp and the card
+  // survives the platforms' own re-compression. The design below stays in the
+  // 1080x1350 coordinate space; a scale wrapper maps it to the real output.
+  const S = 2;
   const style = (url.searchParams.get("style") || post.style || "a").toLowerCase();
   const vstatus = (post.verification_status || "verified") as string;
   const vcol = VCOL[vstatus] || GOLD;
@@ -49,7 +100,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const category = String(post.category || "News").toUpperCase();
   const headline = String(post.headline || "");
   const summary = String(post.summary || "");
-  const photo = String(post.image_url || "");
+  const rawPhoto = String(post.image_url || "");
+  // Size the photo to the region each style gives it (at 2x), so it is encoded
+  // at exactly the density it will be shown at.
+  const [photoW, photoH] = style === "b" ? [W * S, H * S]
+    : style === "c" ? [W * S, 430 * S]
+    : [W * S, 560 * S];
+  const photo = await preparePhoto(rawPhoto, photoW, photoH);
   const globeRed = new URL("/social-assets/globe-red.png", origin).toString();
   const globeBone = new URL("/social-assets/globe-bone.png", origin).toString();
 
@@ -156,9 +213,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     );
   }
 
-  const image = new ImageResponse(tree, {
-    width: W,
-    height: H,
+  // Map the 1080x1350 design onto a 2x canvas with a scale wrapper.
+  const scaled = (
+    <div style={{ width: W * S, height: H * S, display: "flex" }}>
+      <div style={{ width: W, height: H, display: "flex", transform: `scale(${S})`, transformOrigin: "top left" }}>
+        {tree}
+      </div>
+    </div>
+  );
+
+  const image = new ImageResponse(scaled, {
+    width: W * S,
+    height: H * S,
     fonts: [
       { name: "Bodoni", data: bodoni, weight: 700, style: "normal" },
       { name: "Archivo", data: archivo, weight: 400, style: "normal" },
@@ -168,7 +234,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   });
 
   const png = Buffer.from(await image.arrayBuffer());
-  const jpeg = await sharp(png).jpeg({ quality: 90 }).toBuffer();
+  const jpeg = await sharp(png).jpeg({ quality: 92, mozjpeg: true }).toBuffer();
   return new Response(new Uint8Array(jpeg), {
     headers: { "content-type": "image/jpeg", "cache-control": "public, max-age=3600" },
   });
