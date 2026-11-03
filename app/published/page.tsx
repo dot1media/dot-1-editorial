@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Shell from "@/components/Shell";
 import { api, useMe } from "@/lib/client";
 import { CATEGORIES } from "@/lib/newsroom";
-import { Search, Pencil, Trash2, ExternalLink, X } from "lucide-react";
+import { Search, Pencil, Trash2, ExternalLink, X, ArrowUp, ArrowDown, Star, ListOrdered } from "lucide-react";
 
 type Tab = "articles" | "photos" | "videos";
 
@@ -16,6 +16,12 @@ export default function PublishedPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [editing, setEditing] = useState<any>(null);
+
+  // Arrange-edition state: a local working copy of the article order.
+  const [arranging, setArranging] = useState(false);
+  const [order, setOrder] = useState<any[]>([]);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [orderMsg, setOrderMsg] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true); setErr("");
@@ -37,7 +43,45 @@ export default function PublishedPage() {
   const canEdit = can("story.edit");
   const canDelArticle = can("story.delete");
   const canDelMedia = can("media.publish");
+  const canArrange = can("publish.toNews");
   const [copiedId, setCopiedId] = useState("");
+
+  function startArrange() {
+    setOrder(items.slice());
+    setOrderMsg("");
+    setArranging(true);
+  }
+  function move(i: number, dir: -1 | 1) {
+    setOrder((prev) => {
+      const next = prev.slice();
+      const j = i + dir;
+      if (j < 0 || j >= next.length) return prev;
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  }
+  function makeLead(i: number) {
+    setOrder((prev) => {
+      if (i <= 0) return prev;
+      const next = prev.slice();
+      const [it] = next.splice(i, 1);
+      next.unshift(it);
+      return next;
+    });
+  }
+  async function saveOrder() {
+    setSavingOrder(true); setOrderMsg("");
+    try {
+      await api(`/api/published/order`, { method: "POST", body: JSON.stringify({ order: order.map((a) => a.id) }) });
+      setItems(order.slice());
+      setArranging(false);
+      setOrderMsg("");
+    } catch (e: any) {
+      setOrderMsg(e.message || "Could not save the order.");
+    } finally {
+      setSavingOrder(false);
+    }
+  }
 
   const videoShareUrl = (id: string) => `https://news.dot1.media/v/${encodeURIComponent(id)}`;
   async function copyShare(id: string) {
@@ -53,6 +97,16 @@ export default function PublishedPage() {
             {t[0].toUpperCase() + t.slice(1)}
           </button>
         ))}
+        {tab === "articles" && canArrange && !arranging && (
+          <button
+            className="btn sm ghost"
+            onClick={startArrange}
+            disabled={!!q || items.length === 0}
+            title={q ? "Clear the search to arrange the edition" : "Choose the lead story and order the edition"}
+          >
+            <ListOrdered size={13} /> Arrange edition
+          </button>
+        )}
         <div style={{ flex: 1 }} />
         <div style={{ position: "relative" }}>
           <Search size={14} style={{ position: "absolute", left: 10, top: 9, opacity: 0.5 }} />
@@ -61,16 +115,53 @@ export default function PublishedPage() {
       </div>
 
       {err && <div className="card pad" style={{ marginBottom: 12, color: "#ffb4b4" }}>{err}</div>}
-      {loading ? <span className="mono muted tiny">Loading…</span> : items.length === 0 ? (
+      {tab === "articles" && arranging ? (
+        <div className="card pad">
+          <div className="row-between" style={{ marginBottom: 6, alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+            <div>
+              <div className="mini">ARRANGE THE EDITION</div>
+              <div className="tiny muted" style={{ marginTop: 4, maxWidth: 520 }}>
+                The top story is the lead and carries the gold dot in the app and on the site. Use the arrows to reorder, or make any story the lead. Save to publish the new order.
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn ghost sm" onClick={() => { setArranging(false); setOrderMsg(""); }} disabled={savingOrder}>Cancel</button>
+              <button className="btn primary sm" onClick={saveOrder} disabled={savingOrder}>{savingOrder ? "Saving…" : "Save order (goes live)"}</button>
+            </div>
+          </div>
+          {orderMsg && <div className="tiny" style={{ color: "#ffb4b4", marginBottom: 8 }}>{orderMsg}</div>}
+          <div style={{ display: "grid", gap: 6, marginTop: 10 }}>
+            {order.map((a, i) => (
+              <div key={a.id} className="card" style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: i === 0 ? "rgba(212,175,55,.10)" : undefined, border: i === 0 ? "1px solid rgba(212,175,55,.5)" : undefined }}>
+                <span className="mono tiny muted" style={{ width: 22, textAlign: "right" }}>{i + 1}</span>
+                {i === 0
+                  ? <span className="tiny" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#D4AF37", fontWeight: 700, whiteSpace: "nowrap" }}><span style={{ width: 8, height: 8, borderRadius: 999, background: "#D4AF37", display: "inline-block" }} /> Lead</span>
+                  : <button className="btn ghost sm" onClick={() => makeLead(i)} title="Make this the lead story"><Star size={12} /> Make lead</button>}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.title}</div>
+                  <div className="tiny muted">{a.category}{a.published_at ? " · " + new Date(a.published_at).toLocaleDateString() : ""}</div>
+                </div>
+                <div style={{ display: "flex", gap: 4 }}>
+                  <button className="btn ghost sm" onClick={() => move(i, -1)} disabled={i === 0} title="Move up"><ArrowUp size={13} /></button>
+                  <button className="btn ghost sm" onClick={() => move(i, 1)} disabled={i === order.length - 1} title="Move down"><ArrowDown size={13} /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : loading ? <span className="mono muted tiny">Loading…</span> : items.length === 0 ? (
         <div className="card pad muted tiny">Nothing here yet.</div>
       ) : tab === "articles" ? (
         <div className="card">
           <div className="table-wrap"><table className="grid-t">
             <thead><tr><th>Headline</th><th>Category</th><th>Score</th><th>Published</th><th></th></tr></thead>
             <tbody>
-              {items.map((a) => (
+              {items.map((a, i) => (
                 <tr key={a.id}>
-                  <td style={{ fontWeight: 600 }}>{a.title}</td>
+                  <td style={{ fontWeight: 600 }}>
+                    {i === 0 && <span title="Lead story" style={{ display: "inline-block", width: 8, height: 8, borderRadius: 999, background: "#D4AF37", marginRight: 8, verticalAlign: "middle" }} />}
+                    {a.title}
+                  </td>
                   <td className="tiny muted">{a.category}</td>
                   <td className="mono tiny">{a.total ?? "—"}</td>
                   <td className="tiny muted">{a.published_at ? new Date(a.published_at).toLocaleDateString() : "—"}</td>
