@@ -91,11 +91,22 @@ export function humanizeProse(input: string): string {
 export interface SourceMember { item: FeedItem; source: FeedSource; }
 
 /** Build the citations JSON (one entry per distinct source URL) from the members. */
+// RSS links arrive with tracking params; some publishers serve a blank page to
+// a referrer-less hit carrying them, so strip them before storing the citation.
+const SRC_TRACKING = /^(utm_|at_|ns_|mc_|icid$|cid$|cmpid$|ref$|ref_src$|traffic_source$|maca$|xtor$|ito$)/i;
+function cleanSourceUrl(raw: string): string {
+  try {
+    const u = new URL(raw);
+    for (const k of [...u.searchParams.keys()]) if (SRC_TRACKING.test(k)) u.searchParams.delete(k);
+    return u.toString();
+  } catch { return raw; }
+}
+
 function citationsFrom(members: SourceMember[]): string {
   const seen = new Set<string>();
   const out: { title: string; url: string; source: string }[] = [];
   for (const m of members) {
-    const url = String(m.item.link || '').trim();
+    const url = cleanSourceUrl(String(m.item.link || '').trim());
     if (!url || seen.has(url)) continue;
     seen.add(url);
     out.push({ title: m.item.title, url, source: m.source.name });
