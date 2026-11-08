@@ -244,44 +244,51 @@ export async function runGeneration(opts: { max?: number; only?: string } = {}):
   const prefByCat = new Map(prefs.map((p) => [p.category, p]));
   const categoryOf = (cl: Cluster): NewsCategory => dedupeByOutlet(cl.members)[0].source.category;
 
-  // Eligible: covered by enough distinct outlets AND on a topic the desk is set
-  // to reach for.
-  const covered = clusters.filter((cl) => cl.outlets.size >= MIN_SOURCES);
-  result.skipped += clusters.length - covered.length;
-  const eligible = only
-    ? covered.filter((cl) => categoryOf(cl) === only)
-    : covered.filter((cl) => (prefByCat.get(categoryOf(cl))?.enabled ?? true));
-  result.skipped += covered.length - eligible.length;
+  // Eligible: on a topic the desk is set to reach for. Source corroboration is
+  // handled as a preference below (prefer more sources), not a hard gate, so a
+  // run still presents the best available stories instead of coming back empty.
+  const topicOk = (cl: Cluster): boolean =>
+    only ? categoryOf(cl) === only : (prefByCat.get(categoryOf(cl))?.enabled ?? true);
+  const eligible = clusters.filter(topicOk);
+  result.skipped += clusters.length - eligible.length;
 
-  // Group eligible clusters by topic, most widely covered first within each.
-  const byCat = new Map<NewsCategory, Cluster[]>();
-  for (const cl of eligible) {
-    const c = categoryOf(cl);
-    const list = byCat.get(c) || [];
-    list.push(cl);
-    byCat.set(c, list);
-  }
-  for (const list of byCat.values()) list.sort((a, b) => b.outlets.size - a.outlets.size);
-
-  // Balance the run across topics: a weighted round-robin draws from each topic
-  // in turn (a topic of weight w gets up to w picks per cycle), so no single
-  // beat floods the edition. Higher-weight topics are served first in a cycle.
-  const activeCats = [...byCat.keys()]
-    .filter((c) => only ? c === only : (prefByCat.get(c)?.weight ?? 1) > 0)
-    .sort((a, b) => (prefByCat.get(b)?.weight ?? 1) - (prefByCat.get(a)?.weight ?? 1));
+  // Build the run in tiers of corroboration: well-sourced events (MIN_SOURCES+
+  // distinct outlets) first, then two-source, then single-source as a fallback.
+  // Within each tier, balance across enabled topics with a weighted round-robin
+  // (a topic of weight w gets up to w picks per cycle, higher weight first) so no
+  // one beat floods the edition. The order is not capped at `max`: the generation
+  // loop stops once it has made `max` drafts, skipping any already-used cluster
+  // cheaply, so duplicates never starve a run of fresh stories.
   const order: Cluster[] = [];
-  let advanced = true;
-  while (order.length < max && advanced) {
-    advanced = false;
-    for (const c of activeCats) {
-      const w = prefByCat.get(c)?.weight ?? 1;
-      const list = byCat.get(c)!;
-      for (let k = 0; k < w && order.length < max; k++) {
-        const next = list.shift();
-        if (next) { order.push(next); advanced = true; }
+  const takeTier = (minOutlets: number, maxOutlets: number) => {
+    const tier = eligible.filter((cl) => cl.outlets.size >= minOutlets && cl.outlets.size <= maxOutlets);
+    const byCat = new Map<NewsCategory, Cluster[]>();
+    for (const cl of tier) {
+      const c = categoryOf(cl);
+      const list = byCat.get(c) || [];
+      list.push(cl);
+      byCat.set(c, list);
+    }
+    for (const list of byCat.values()) list.sort((a, b) => b.outlets.size - a.outlets.size);
+    const activeCats = [...byCat.keys()]
+      .filter((c) => only ? c === only : (prefByCat.get(c)?.weight ?? 1) > 0)
+      .sort((a, b) => (prefByCat.get(b)?.weight ?? 1) - (prefByCat.get(a)?.weight ?? 1));
+    let advanced = true;
+    while (advanced) {
+      advanced = false;
+      for (const c of activeCats) {
+        const w = prefByCat.get(c)?.weight ?? 1;
+        const list = byCat.get(c)!;
+        for (let k = 0; k < w; k++) {
+          const next = list.shift();
+          if (next) { order.push(next); advanced = true; }
+        }
       }
     }
-  }
+  };
+  takeTier(MIN_SOURCES, Number.MAX_SAFE_INTEGER); // best corroborated first
+  takeTier(2, MIN_SOURCES - 1);                   // then two-source events
+  takeTier(1, 1);                                 // then single-source, as a fallback
 
   for (const cl of order) {
     if (result.generated >= max) break;
