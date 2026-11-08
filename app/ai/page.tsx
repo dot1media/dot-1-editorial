@@ -24,12 +24,37 @@ export default function AiDeskPage() {
   const [ytBusy, setYtBusy] = useState(false);
   const [ytErr, setYtErr] = useState("");
 
+  // Topics the desk reaches for, so the edition is balanced, not politics-only.
+  const [topics, setTopics] = useState<{ category: string; enabled: boolean; weight: number }[]>([]);
+  const [topicsBusy, setTopicsBusy] = useState(false);
+  const [topicsMsg, setTopicsMsg] = useState("");
+  const [topicsDirty, setTopicsDirty] = useState(false);
+
   async function load() {
     const d = await api<{ drafts: any[] }>("/api/ai/drafts");
     setDrafts(d.drafts || []);
     setLoaded(true);
   }
-  useEffect(() => { load(); }, []);
+  async function loadTopics() {
+    try {
+      const t = await api<{ topics: any[] }>("/api/ai/topics");
+      setTopics(t.topics || []);
+    } catch { /* lacking permission or not configured: panel stays hidden */ }
+  }
+  useEffect(() => { load(); if (can("story.create")) loadTopics(); }, []);
+
+  function patchTopic(cat: string, patch: Partial<{ enabled: boolean; weight: number }>) {
+    setTopics((prev) => prev.map((t) => (t.category === cat ? { ...t, ...patch } : t)));
+    setTopicsDirty(true); setTopicsMsg("");
+  }
+  async function saveTopics() {
+    setTopicsBusy(true); setTopicsMsg("");
+    try {
+      const r = await api<{ topics: any[] }>("/api/ai/topics", { method: "POST", body: JSON.stringify({ topics }) });
+      setTopics(r.topics || topics); setTopicsDirty(false); setTopicsMsg("Saved.");
+    } catch (e: any) { setTopicsMsg(e.message || "Could not save."); }
+    finally { setTopicsBusy(false); }
+  }
 
   async function generate() {
     setRunning(true); setErr(""); setResult(null);
@@ -94,6 +119,36 @@ export default function AiDeskPage() {
           </div>
           {ytBusy && <div className="tiny muted" style={{ marginTop: 10 }}>Reading the video and writing the brief. This can take up to a minute.</div>}
           {ytErr && <div className="tiny" style={{ marginTop: 10, color: "#ffb4b4" }}>{ytErr}</div>}
+        </div>
+      )}
+
+      {can("story.create") && topics.length > 0 && (
+        <div className="card pad" style={{ marginBottom: 14 }}>
+          <div className="mini" style={{ marginBottom: 8, display: "flex", alignItems: "center", gap: 7 }}>
+            <Sparkles size={14} /> TOPICS THE DESK REACHES FOR
+          </div>
+          <div className="tiny muted" style={{ marginBottom: 12 }}>
+            Turn a topic off to skip it, or raise its pull so the desk reaches for it more. Each run is balanced across the topics that are on, so the edition is not flooded with one beat.
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 10 }}>
+            {topics.map((t) => (
+              <div key={t.category} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", border: "1px solid rgba(128,128,128,0.25)", borderRadius: 8, opacity: t.enabled ? 1 : 0.5 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, cursor: "pointer", textTransform: "capitalize" }}>
+                  <input type="checkbox" checked={t.enabled} onChange={(e) => patchTopic(t.category, { enabled: e.target.checked })} />
+                  {t.category}
+                </label>
+                <select className="in" value={[1, 2, 3].includes(t.weight) ? t.weight : 1} disabled={!t.enabled} onChange={(e) => patchTopic(t.category, { weight: Number(e.target.value) })} style={{ width: 92 }}>
+                  <option value={1}>Normal</option>
+                  <option value={2}>More</option>
+                  <option value={3}>Most</option>
+                </select>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
+            <button className="btn primary sm" onClick={saveTopics} disabled={topicsBusy || !topicsDirty}>{topicsBusy ? "Saving…" : "Save topics"}</button>
+            {topicsMsg && <span className="tiny muted">{topicsMsg}</span>}
+          </div>
         </div>
       )}
 

@@ -6,6 +6,7 @@ import { getFeeds, type FeedSource, type NewsCategory } from "@/lib/ai/sources";
 import { fetchFeed, type FeedItem } from "@/lib/ai/rss";
 import { generateArticle, type GeneratedArticle, type SourceMember } from "@/lib/ai/generate";
 import { youTubeToSourceItem } from "@/lib/ai/youtube";
+import { getTopicPrefs } from "@/lib/ai/topics";
 
 const NEWS_CATEGORIES: NewsCategory[] = ["world", "politics", "faith", "culture", "technology", "health", "business", "environment"];
 
@@ -233,14 +234,49 @@ export async function runGeneration(opts: { max?: number } = {}): Promise<Genera
     if (!placed) clusters.push({ members: [c], outlets: new Set([c.source.name]), seed: tk });
   }
 
-  // Only clusters covered by enough distinct outlets are eligible. The most
-  // widely covered events come first.
-  const eligible = clusters
-    .filter((cl) => cl.outlets.size >= MIN_SOURCES)
-    .sort((a, b) => b.outlets.size - a.outlets.size);
-  result.skipped += clusters.length - eligible.length;
+  // A cluster's topic is its best outlet's category.
+  const prefs = await getTopicPrefs();
+  const prefByCat = new Map(prefs.map((p) => [p.category, p]));
+  const categoryOf = (cl: Cluster): NewsCategory => dedupeByOutlet(cl.members)[0].source.category;
 
+  // Eligible: covered by enough distinct outlets AND on a topic the desk is set
+  // to reach for.
+  const covered = clusters.filter((cl) => cl.outlets.size >= MIN_SOURCES);
+  result.skipped += clusters.length - covered.length;
+  const eligible = covered.filter((cl) => (prefByCat.get(categoryOf(cl))?.enabled ?? true));
+  result.skipped += covered.length - eligible.length;
+
+  // Group eligible clusters by topic, most widely covered first within each.
+  const byCat = new Map<NewsCategory, Cluster[]>();
   for (const cl of eligible) {
+    const c = categoryOf(cl);
+    const list = byCat.get(c) || [];
+    list.push(cl);
+    byCat.set(c, list);
+  }
+  for (const list of byCat.values()) list.sort((a, b) => b.outlets.size - a.outlets.size);
+
+  // Balance the run across topics: a weighted round-robin draws from each topic
+  // in turn (a topic of weight w gets up to w picks per cycle), so no single
+  // beat floods the edition. Higher-weight topics are served first in a cycle.
+  const activeCats = [...byCat.keys()]
+    .filter((c) => (prefByCat.get(c)?.weight ?? 1) > 0)
+    .sort((a, b) => (prefByCat.get(b)?.weight ?? 1) - (prefByCat.get(a)?.weight ?? 1));
+  const order: Cluster[] = [];
+  let advanced = true;
+  while (order.length < max && advanced) {
+    advanced = false;
+    for (const c of activeCats) {
+      const w = prefByCat.get(c)?.weight ?? 1;
+      const list = byCat.get(c)!;
+      for (let k = 0; k < w && order.length < max; k++) {
+        const next = list.shift();
+        if (next) { order.push(next); advanced = true; }
+      }
+    }
+  }
+
+  for (const cl of order) {
     if (result.generated >= max) break;
     result.considered += 1;
     try {
