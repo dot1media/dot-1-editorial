@@ -64,6 +64,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     hero_image       = CASE WHEN ${has("heroImage")}       THEN ${s("heroImage")}       ELSE hero_image END,
     hero_image_credit = CASE WHEN ${has("heroImageCredit")} THEN ${s("heroImageCredit")} ELSE hero_image_credit END,
     hero_image_rights_restricted = CASE WHEN ${has("heroImageRightsRestricted")} THEN ${bool("heroImageRightsRestricted")} ELSE hero_image_rights_restricted END,
+    hero_image_illustrative = CASE WHEN ${has("heroImageIllustrative")} THEN ${bool("heroImageIllustrative")} ELSE hero_image_illustrative END,
     why_publish      = CASE WHEN ${has("whyPublish")}      THEN ${s("whyPublish")}      ELSE why_publish END,
     slug             = CASE WHEN ${has("slug")}            THEN ${slug}                 ELSE slug END,
     planned_publish_at = CASE WHEN ${has("plannedPublishAt")} THEN ${planned} ELSE planned_publish_at END,

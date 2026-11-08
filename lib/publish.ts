@@ -30,6 +30,7 @@ export interface EditorialStoryRow {
   citations?: any;
   hero_image_credit?: string | null;
   hero_image_rights_restricted?: boolean | null;
+  hero_image_illustrative?: boolean | null;
 }
 
 // A resizable, branded placeholder shown in place of a rights-restricted source
@@ -76,6 +77,9 @@ function prepare(story: EditorialStoryRow) {
     // Source + image attribution for the article footer.
     imageCredit,
     imageRightsRestricted: rightsRestricted,
+    // When the editor marks the hero as illustrative, the readers show an
+    // "Illustration" label so stock is never read as documentary.
+    imageIllustrative: !!story.hero_image_illustrative,
     sourceUrl: String(story.source_url || "").trim().slice(0, 1000),
     sourceName: String(story.source_name || "").trim().slice(0, 200),
     citations: normalizeCitations(story.citations),
@@ -130,6 +134,7 @@ async function ensureScoreMetaColumns(): Promise<void> {
     await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS image_credit TEXT`;
     await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS image_credit_url TEXT`;
     await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS image_rights_restricted BOOLEAN NOT NULL DEFAULT false`;
+    await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS image_illustrative BOOLEAN NOT NULL DEFAULT false`;
     await db`ALTER TABLE news_stories ADD COLUMN IF NOT EXISTS citations JSONB`;
     scoreMetaColsReady = true;
   } catch { /* best effort; the app degrades gracefully when these are absent */ }
@@ -182,6 +187,7 @@ export async function publishToNews(
       d14ls_interpretation = ${p.interpretation}, d14ls_index_notes = ${p.scoreNotes}::jsonb, d14ls_instrument_version = ${p.instrumentVersion},
       source_url = ${p.sourceUrl}, source_name = ${p.sourceName}, citations = ${JSON.stringify(p.citations)}::jsonb,
       image_credit = ${p.imageCredit}, image_rights_restricted = ${p.imageRightsRestricted},
+      image_illustrative = ${p.imageIllustrative},
       updated_at = now()
       WHERE id = ${newsId}`;
     return { newsStoryId: newsId, totalScore: total };
@@ -198,7 +204,7 @@ export async function publishToNews(
       score_confidence, status, date, published_at, reviewed_at, is_dual_rated,
       verification_status, verification_override,
       d14ls_interpretation, d14ls_index_notes, d14ls_instrument_version,
-      source_url, source_name, citations, image_credit, image_rights_restricted
+      source_url, source_name, citations, image_credit, image_rights_restricted, image_illustrative
     ) VALUES (
       ${newsId}, ${p.headline}, ${p.summary}, ${p.content}, ${p.image}, ${p.category}, ${authorLabel}, ${[] as string[]},
       ${p.format}, ${p.wc}, ${p.readMin},
@@ -210,7 +216,7 @@ export async function publishToNews(
       ${p.confidence}, 'published', ${now}, ${now}, ${now}, ${dualRated},
       ${vStatus}, ${vOverride},
       ${p.interpretation}, ${p.scoreNotes}::jsonb, ${p.instrumentVersion},
-      ${p.sourceUrl}, ${p.sourceName}, ${JSON.stringify(p.citations)}::jsonb, ${p.imageCredit}, ${p.imageRightsRestricted}
+      ${p.sourceUrl}, ${p.sourceName}, ${JSON.stringify(p.citations)}::jsonb, ${p.imageCredit}, ${p.imageRightsRestricted}, ${p.imageIllustrative}
     )`;
   return { newsStoryId: newsId, totalScore: total };
 }
