@@ -22,7 +22,8 @@ export async function POST(request: Request) {
 
   const b = await readJson(request).catch(() => ({}));
   const max = Number(b.max) || 3;
-  const result = await runGeneration({ max });
-  await audit(account.email, "ai.generate", "ai", "desk", { generated: result.generated, considered: result.considered });
+  const only = typeof b.only === "string" && b.only ? b.only : undefined;
+  const result = await runGeneration({ max, only });
+  await audit(account.email, "ai.generate", "ai", "desk", { generated: result.generated, considered: result.considered, only: only || "all" });
   return NextResponse.json(result);
 }

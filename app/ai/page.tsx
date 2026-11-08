@@ -15,6 +15,8 @@ export default function AiDeskPage() {
   const [loaded, setLoaded] = useState(false);
   const [running, setRunning] = useState(false);
   const [max, setMax] = useState(3);
+  // Which topic this run reaches for. "" means all enabled topics (balanced).
+  const [only, setOnly] = useState("");
   const [result, setResult] = useState<any>(null);
   const [err, setErr] = useState("");
 
@@ -36,10 +38,13 @@ export default function AiDeskPage() {
     setLoaded(true);
   }
   async function loadTopics() {
+    // Always show a full set of toggles. If the saved prefs can't be read yet,
+    // fall back to every category on at normal pull, so the control never vanishes.
+    const fallback = CATEGORIES.map((c) => ({ category: c as string, enabled: true, weight: 1 }));
     try {
       const t = await api<{ topics: any[] }>("/api/ai/topics");
-      setTopics(t.topics || []);
-    } catch { /* lacking permission or not configured: panel stays hidden */ }
+      setTopics(t.topics && t.topics.length ? t.topics : fallback);
+    } catch { setTopics(fallback); }
   }
   useEffect(() => { load(); if (can("story.create")) loadTopics(); }, []);
 
@@ -59,7 +64,7 @@ export default function AiDeskPage() {
   async function generate() {
     setRunning(true); setErr(""); setResult(null);
     try {
-      const r = await api<any>("/api/ai/generate", { method: "POST", body: JSON.stringify({ max }) });
+      const r = await api<any>("/api/ai/generate", { method: "POST", body: JSON.stringify({ max, only: only || undefined }) });
       setResult(r);
       await load();
     } catch (e: any) { setErr(e.message || "Generation failed."); }
@@ -84,6 +89,11 @@ export default function AiDeskPage() {
     <Shell title="AI Desk" subtitle="Generate drafts from the wire. Each lands as a story to verify, rate, and publish."
       actions={can("story.create") ? (
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <label className="tiny muted">Topic</label>
+          <select className="in" value={only} onChange={(e) => setOnly(e.target.value)} style={{ width: 140, textTransform: "capitalize" }} title="Reach for one topic, or all enabled topics">
+            <option value="">All topics</option>
+            {CATEGORIES.map((c) => <option key={c} value={c} style={{ textTransform: "capitalize" }}>{c}</option>)}
+          </select>
           <label className="tiny muted">Count</label>
           <input className="in" type="number" min={1} max={8} value={max} onChange={(e) => setMax(Number(e.target.value))} style={{ width: 64 }} />
           <button className="btn primary" onClick={generate} disabled={running}>
@@ -128,7 +138,7 @@ export default function AiDeskPage() {
             <Sparkles size={14} /> TOPICS THE DESK REACHES FOR
           </div>
           <div className="tiny muted" style={{ marginBottom: 12 }}>
-            Turn a topic off to skip it, or raise its pull so the desk reaches for it more. Each run is balanced across the topics that are on, so the edition is not flooded with one beat.
+            Turn a topic off to skip it, or raise its pull so the desk reaches for it more. Each balanced run (Topic set to "All topics") spreads across the topics that are on, so the edition is not flooded with one beat. To pull a single beat on demand, pick it in the Topic menu by Generate now.
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 10 }}>
             {topics.map((t) => (

@@ -202,9 +202,14 @@ export async function generateFromYouTube(
   return { id, headline: article.title, source: source.name };
 }
 
-export async function runGeneration(opts: { max?: number } = {}): Promise<GenerateResult> {
+export async function runGeneration(opts: { max?: number; only?: string } = {}): Promise<GenerateResult> {
   await ensureSchema();
   const max = Math.max(1, Math.min(opts.max ?? 3, 8));
+  // When the newsroom asks for one topic specifically, this run reaches for that
+  // topic only, overriding the usual balance across enabled topics.
+  const only: NewsCategory | null = NEWS_CATEGORIES.includes(opts.only as NewsCategory)
+    ? (opts.only as NewsCategory)
+    : null;
   const result: GenerateResult = { considered: 0, generated: 0, skipped: 0, failed: 0, drafts: [], errors: [] };
 
   const feeds = getFeeds().filter((f) => f.enabled);
@@ -243,7 +248,9 @@ export async function runGeneration(opts: { max?: number } = {}): Promise<Genera
   // to reach for.
   const covered = clusters.filter((cl) => cl.outlets.size >= MIN_SOURCES);
   result.skipped += clusters.length - covered.length;
-  const eligible = covered.filter((cl) => (prefByCat.get(categoryOf(cl))?.enabled ?? true));
+  const eligible = only
+    ? covered.filter((cl) => categoryOf(cl) === only)
+    : covered.filter((cl) => (prefByCat.get(categoryOf(cl))?.enabled ?? true));
   result.skipped += covered.length - eligible.length;
 
   // Group eligible clusters by topic, most widely covered first within each.
@@ -260,7 +267,7 @@ export async function runGeneration(opts: { max?: number } = {}): Promise<Genera
   // in turn (a topic of weight w gets up to w picks per cycle), so no single
   // beat floods the edition. Higher-weight topics are served first in a cycle.
   const activeCats = [...byCat.keys()]
-    .filter((c) => (prefByCat.get(c)?.weight ?? 1) > 0)
+    .filter((c) => only ? c === only : (prefByCat.get(c)?.weight ?? 1) > 0)
     .sort((a, b) => (prefByCat.get(b)?.weight ?? 1) - (prefByCat.get(a)?.weight ?? 1));
   const order: Cluster[] = [];
   let advanced = true;
