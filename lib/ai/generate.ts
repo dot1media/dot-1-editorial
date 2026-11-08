@@ -43,6 +43,9 @@ export interface GeneratedArticle {
   content: string;
   image: string;
   imageCredit: string;
+  // True when `image` is a sourced stock/CC illustration rather than the outlet's
+  // own photograph of the event, so the reader can be shown an "Illustration" label.
+  imageIllustrative: boolean;
   tags: string[];
   citations: string; // JSON array [{title,url,source}]
   editorNote: string; // reader-facing: why this story earned a place today
@@ -138,6 +141,7 @@ function buildTemplateArticle(members: SourceMember[]): GeneratedArticle {
     content: humanizeProse(content),
     image: item.imageUrl || fallbackImageFor(source.category, item.link),
     imageCredit: '',
+    imageIllustrative: false,
     tags: [source.category, 'curated'],
     citations: citationsFrom(members),
     editorNote: '',
@@ -189,6 +193,10 @@ interface WriterOutput {
   body: string;
   tags: string[];
   editorNote: string;
+  // A short, concrete visual subject for sourcing a stock illustration when the
+  // outlet carried no photo of its own. Two to five words naming a thing that
+  // can actually be photographed, not an abstraction.
+  imageQuery: string;
 }
 
 interface ScorerOutput {
@@ -256,7 +264,8 @@ OUTPUT, ONLY a JSON object, no fences, no preamble:
   "summary": "one to two sentences, max 280 chars, no em-dashes, no markdown",
   "body": "the full brief in clean prose, no markdown, no asterisks, no em-dashes, ending with the Through the Lens section",
   "tags": ["3-5", "lowercase", "tags"],
-  "editorNote": "ONE plain sentence, max 160 chars, addressed to the reader: why this story earned a place in today's edition. Name the turning it serves. No hype, no marketing, no restating the headline, no em-dashes."
+  "editorNote": "ONE plain sentence, max 160 chars, addressed to the reader: why this story earned a place in today's edition. Name the turning it serves. No hype, no marketing, no restating the headline, no em-dashes.",
+  "imageQuery": "2 to 5 words naming the single most central, concrete, photographable subject of THIS story, for finding a stock illustration. Name a specific thing a camera could capture (a place, object, building, setting), not an abstract theme. Prefer the proper place or thing over a generic word. Example: for a story on an Alaska pipeline restart, 'Alaska oil pipeline', not 'energy policy'."
 }`;
 }
 
@@ -356,6 +365,7 @@ function validateWriter(w: any): WriterOutput | null {
     body: String(w.body),
     tags: Array.isArray(w.tags) ? w.tags.slice(0, 6).map((t: any) => String(t).toLowerCase().slice(0, 30)) : ['news'],
     editorNote: typeof w.editorNote === 'string' ? w.editorNote.trim().slice(0, 200) : '',
+    imageQuery: typeof w.imageQuery === 'string' ? w.imageQuery.trim().slice(0, 80) : '',
   };
 }
 
@@ -436,6 +446,7 @@ function buildTwoPassArticle(
     editorNote: humanizeProse(draft.editorNote),
     image: item.imageUrl || fallbackImageFor(source.category, item.link),
     imageCredit: '',
+    imageIllustrative: false,
     tags: draft.tags,
     citations: citationsFrom(members),
     claims: scored?.claims ?? [],
@@ -476,12 +487,15 @@ export async function generateArticle(
   }
   const apiKey = process.env.ANTHROPIC_API_KEY;
   let article: GeneratedArticle | null = null;
+  // The writer's concrete visual subject, carried out to the image-sourcing step.
+  let imageQuery = '';
   if (apiKey) {
     const started = Date.now();
     const writerBudget = Math.min(45000, Math.floor(aiTimeoutMs * 0.55));
     const rawWriter = await callAnthropic(buildWriterPrompt(members), apiKey, writerBudget, 1700, ANTHROPIC_MODEL);
     const draft = validateWriter(rawWriter);
     if (draft) {
+      imageQuery = draft.imageQuery;
       const remaining = aiTimeoutMs - (Date.now() - started) - 1500;
       const scorerBudget = Math.max(8000, Math.min(30000, remaining));
       const rawScorer = await callAnthropic(buildScorerPrompt(members, draft), apiKey, scorerBudget, 2300, ANTHROPIC_MODEL_SCORER);
@@ -496,12 +510,21 @@ export async function generateArticle(
   if (!article) article = buildTemplateArticle(members);
 
   // No outlet photo (feed or og:image)? Find a relevant, license-clear image and
-  // credit it. On any miss, the branded category fallback already on the article stays.
+  // credit it. We search on the writer's concrete visual subject (falling back to
+  // the lead tags), and the search itself rejects any result whose own title and
+  // tags don't overlap the query, so an off-topic picture never lands. On any miss
+  // the branded category fallback already on the article stays, and because a
+  // sourced image is a stock illustration rather than the outlet's photo of the
+  // event, it is flagged so the reader sees an "Illustration" label.
   if (!item.imageUrl) {
     try {
-      const q = [(article.tags || []).slice(0, 3).join(' '), article.title, source.category].filter(Boolean).join(' ').trim();
+      const q = (imageQuery || (article.tags || []).slice(0, 2).join(' ')).trim();
       const sourced = await searchOpenverseImage(q);
-      if (sourced && sourced.url) { article.image = sourced.url; article.imageCredit = sourced.credit; }
+      if (sourced && sourced.url) {
+        article.image = sourced.url;
+        article.imageCredit = sourced.credit;
+        article.imageIllustrative = true;
+      }
     } catch {}
   }
   return article;

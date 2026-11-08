@@ -105,12 +105,12 @@ async function insertDraft(article: GeneratedArticle, members: SourceMember[]): 
 
   await sql`INSERT INTO stories (
     id, working_headline, final_headline, summary, body, classification, category, location,
-    priority, status, hero_image, hero_image_credit, why_publish, review_state, scores, score_confidence,
+    priority, status, hero_image, hero_image_credit, hero_image_illustrative, why_publish, review_state, scores, score_confidence,
     origin, source_url, source_name, ai_model, auto_publish, created_by, citations
   ) VALUES (
     ${id}, ${article.title}, ${article.title}, ${article.summary}, ${article.content},
     ${"news"}, ${source.category}, ${""}, ${"routine"}, ${"verification"},
-    ${article.image || ""}, ${article.imageCredit || ""}, ${article.editorNote || ""}, ${"not_verified"},
+    ${article.image || ""}, ${article.imageCredit || ""}, ${!!article.imageIllustrative}, ${article.editorNote || ""}, ${"not_verified"},
     ${JSON.stringify(scoreObj)}::jsonb, ${article.scoreConfidence},
     ${"ai"}, ${item.link || ""}, ${source.name}, ${process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6"}, ${true}, ${"ai-desk"}, ${article.citations}::jsonb
   )`;
